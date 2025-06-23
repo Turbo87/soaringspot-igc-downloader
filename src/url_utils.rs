@@ -82,3 +82,92 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
 
     Ok(UrlInfo { class, date })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_url_inplace() {
+        // Test HTTP to HTTPS conversion
+        let mut url = Url::parse("http://www.soaringspot.com/en_gb/test").unwrap();
+        normalize_url_inplace(&mut url).unwrap();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/test");
+
+        // Test adding www prefix
+        let mut url = Url::parse("https://soaringspot.com/en_gb/test").unwrap();
+        normalize_url_inplace(&mut url).unwrap();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/test");
+
+        // Test language code normalization
+        let mut url = Url::parse("https://www.soaringspot.com/de/test").unwrap();
+        normalize_url_inplace(&mut url).unwrap();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/test");
+
+        let mut url = Url::parse("https://www.soaringspot.com/fr_fr/test").unwrap();
+        normalize_url_inplace(&mut url).unwrap();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/test");
+
+        // Test invalid scheme error
+        let mut url = Url::parse("ftp://www.soaringspot.com/en_gb/test").unwrap();
+        let result = normalize_url_inplace(&mut url);
+        insta::assert_snapshot!(result.unwrap_err(), @"URL must use HTTP or HTTPS scheme");
+
+        // Test invalid host error
+        let mut url = Url::parse("https://invalid.com/en_gb/test").unwrap();
+        let result = normalize_url_inplace(&mut url);
+        insta::assert_snapshot!(result.unwrap_err(), @"URL must be from soaringspot.com or www.soaringspot.com");
+    }
+
+    #[test]
+    fn test_extract_url_info() {
+        // Test valid daily results URL
+        let url = "https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-10-on-2025-06-19/daily";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        UrlInfo {
+            class: "club",
+            date: 2025-06-19,
+        }
+        "#);
+
+        // Test different class
+        let url = "https://www.soaringspot.com/en_gb/competition/results/standard/task-5-on-2024-07-15/daily";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        UrlInfo {
+            class: "standard",
+            date: 2024-07-15,
+        }
+        "#);
+
+        // Test error cases
+        let url = "https://www.soaringspot.com/en_gb/test";
+        let url = Url::parse(url).unwrap();
+        let result = extract_url_info(&url);
+        insta::assert_snapshot!(result.unwrap_err(), @"URL does not contain enough path segments for daily results");
+
+        let url = "https://www.soaringspot.com/en_gb/test/invalid/club/task-1-on-2025-01-01/daily";
+        let url = Url::parse(url).unwrap();
+        let result = extract_url_info(&url);
+        insta::assert_snapshot!(result.unwrap_err(), @"'results' must be the third path segment");
+
+        let url = "https://www.soaringspot.com/en_gb/test/results/club/task-1-on-2025-01-01/other";
+        let url = Url::parse(url).unwrap();
+        let result = extract_url_info(&url);
+        insta::assert_snapshot!(result.unwrap_err(), @"URL must end with '/daily' for daily results");
+
+        let url = "https://www.soaringspot.com/en_gb/test/results/club/invalid-format/daily";
+        let url = Url::parse(url).unwrap();
+        let result = extract_url_info(&url);
+        insta::assert_snapshot!(result.unwrap_err(), @"Fifth segment must be a task segment with date (task-{n}-on-{date})");
+
+        let url =
+            "https://www.soaringspot.com/en_gb/test/results/club/task-1-on-invalid-date/daily";
+        let url = Url::parse(url).unwrap();
+        let result = extract_url_info(&url);
+        insta::assert_snapshot!(result.unwrap_err(), @"Failed to parse date 'invalid-date': strptime parsing failed: %Y failed: failed to parse year: invalid number, no digits found");
+    }
+}
