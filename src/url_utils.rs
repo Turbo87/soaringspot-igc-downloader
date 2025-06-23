@@ -42,7 +42,10 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
         return Err("URL must be from soaringspot.com or www.soaringspot.com".into());
     }
 
-    let mut segments = url.path_segments().ok_or("Invalid URL path")?;
+    let mut segments = url
+        .path_segments()
+        .ok_or("Invalid URL path")?
+        .filter(|s| !s.is_empty());
 
     // Get language code
     let _language = segments
@@ -129,6 +132,21 @@ mod tests {
         )
         "#);
 
+        // Test valid daily results URL with trailing slash
+        let url = "https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-10-on-2025-06-19/daily/";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        Daily(
+            DailyUrlInfo {
+                competition: "39th-fai-world-gliding-championships-tabor-2025",
+                class: "club",
+                date: 2025-06-19,
+                task_number: 10,
+            },
+        )
+        "#);
+
         // Test different class
         let url = "https://www.soaringspot.com/en_gb/competition/results/standard/task-5-on-2024-07-15/daily";
         let url = Url::parse(url).unwrap();
@@ -146,6 +164,16 @@ mod tests {
 
         // Test competition URL
         let url = "https://www.soaringspot.com/en_gb/test";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        Competition {
+            competition: "test",
+        }
+        "#);
+
+        // Test competition URL with trailing slash
+        let url = "https://www.soaringspot.com/en_gb/test/";
         let url = Url::parse(url).unwrap();
         let info = extract_url_info(&url).unwrap();
         insta::assert_debug_snapshot!(info, @r#"
