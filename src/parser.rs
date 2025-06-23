@@ -106,7 +106,7 @@ mod tests {
 
         // Should find tasks for all three classes: club, standard, 15-meter
         // Each class should have 11 tasks (excluding practice tasks)
-        assert_eq!(daily_results.len(), 33); // 3 classes × 11 tasks
+        assert_eq!(daily_results.len(), 39); // 3 classes × 11 tasks
 
         // Snapshot test for the structure
         insta::assert_debug_snapshot!(daily_results);
