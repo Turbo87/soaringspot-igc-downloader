@@ -3,8 +3,13 @@ mod parser;
 mod url_utils;
 
 use clap::Parser;
+use date_utils::date_to_igc_filename_prefix;
+use indicatif::{ProgressBar, ProgressStyle};
 use parser::parse_igc_files;
 use std::path::PathBuf;
+use tempfile::NamedTempFile;
+use tokio::fs;
+use tokio::io::AsyncWriteExt;
 use url::Url;
 use url_utils::{extract_url_info, normalize_url_inplace};
 
@@ -29,7 +34,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut url = Url::parse(&args.url)?;
     normalize_url_inplace(&mut url)?;
     let url_info = extract_url_info(&url)?;
-    println!("Competition: {}, Class: {}, Date: {}", url_info.competition, url_info.class, url_info.date);
+    println!(
+        "Competition: {}, Class: {}, Date: {}",
+        url_info.competition, url_info.class, url_info.date
+    );
 
     println!("Downloading HTML from: {}", url);
 
@@ -41,19 +49,98 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Parse HTML and extract IGC file information
         let igc_files = parse_igc_files(&html)?;
-        println!("Found {} IGC files:", igc_files.len());
+        println!("Found {} IGC files", igc_files.len());
 
-        // Determine output directory
-        let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
-        println!("Output directory: {}", output_dir.display());
-
-        for igc_file in &igc_files {
-            println!("  {} -> {}", igc_file.callsign, igc_file.download_url);
+        if igc_files.is_empty() {
+            println!("No IGC files found to download");
+            return Ok(());
         }
+
+        // Determine output directory and create directory structure
+        let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
+
+        // Create directory structure: {output}/{competition}/{class}/{date}/
+        let date_str = url_info.date.strftime("%Y-%m-%d").to_string();
+        let target_dir = output_dir
+            .join(&url_info.competition)
+            .join(&url_info.class)
+            .join(date_str);
+
+        fs::create_dir_all(&target_dir).await?;
+        println!("Downloading to: {}", target_dir.display());
+
+        // Create progress bar
+        let progress_bar = ProgressBar::new(igc_files.len() as u64);
+        progress_bar.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}")
+                .unwrap()
+                .progress_chars("#>-")
+        );
+
+        // Generate date prefix for filenames
+        let date_prefix = date_to_igc_filename_prefix(url_info.date);
+
+        // Download each IGC file
+        for igc_file in igc_files {
+            let filename = format!("{}_{}.igc", date_prefix, igc_file.callsign);
+            let file_path = target_dir.join(&filename);
+
+            progress_bar.set_message(format!("Downloading {}", filename));
+
+            // Skip if file already exists
+            if file_path.exists() {
+                progress_bar.println(format!("⏭ Skipping existing file: {}", filename));
+                progress_bar.inc(1);
+                continue;
+            }
+
+            // Download to temporary file first
+            match download_igc_file(&client, &igc_file.download_url, &file_path).await {
+                Ok(_) => {
+                    progress_bar.println(format!("✓ Downloaded: {}", filename));
+                }
+                Err(e) => {
+                    progress_bar.println(format!("✗ Failed to download {}: {}", filename, e));
+                }
+            }
+
+            progress_bar.inc(1);
+        }
+
+        progress_bar.finish_with_message("Download complete!");
     } else {
         eprintln!("Failed to download HTML: HTTP {}", response.status());
         return Err(format!("HTTP error: {}", response.status()).into());
     }
+
+    Ok(())
+}
+
+async fn download_igc_file(
+    client: &reqwest::Client,
+    url: &str,
+    final_path: &PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let response = client.get(url).send().await?;
+    if !response.status().is_success() {
+        return Err(format!("HTTP error {}: {}", response.status(), url).into());
+    }
+
+    let content = response.bytes().await?;
+
+    // Create a temporary file
+    let temp_file = NamedTempFile::new()?;
+    let temp_path = temp_file.path();
+
+    // Write content to temporary file
+    let mut file = fs::File::create(temp_path).await?;
+    file.write_all(&content).await?;
+    file.shutdown().await?;
+    drop(file);
+
+    // Atomically move temp file to final location
+    fs::rename(temp_path, final_path).await?;
 
     Ok(())
 }
