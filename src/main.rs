@@ -2,6 +2,7 @@ mod date_utils;
 mod parser;
 mod url_utils;
 
+use crate::url_utils::DailyUrlInfo;
 use clap::Parser;
 use date_utils::date_to_igc_filename_prefix;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -33,47 +34,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse and normalize URL, then extract info
     let mut url = Url::parse(&args.url)?;
     normalize_url_inplace(&mut url)?;
-    let url_info = extract_url_info(&url)?;
-    let daily_info = match &url_info {
-        UrlInfo::Daily(daily_info) => {
-            println!(
-                "Competition: {}, Class: {}, Date: {}, Task: {}",
-                daily_info.competition, daily_info.class, daily_info.date, daily_info.task_number
-            );
-            daily_info.clone()
-        }
-        UrlInfo::Class { competition, class } => {
-            println!("Competition: {}, Class: {} (all dates)", competition, class);
-            // TODO: Implement discovery of all dates for this class
-            return Err("Multi-date downloads not yet implemented".into());
-        }
-        UrlInfo::Competition { competition } => {
-            println!("Competition: {} (all classes and dates)", competition);
-            // TODO: Implement discovery of all classes and dates
-            return Err("Multi-class downloads not yet implemented".into());
-        }
-    };
-
-    println!("Downloading HTML from: {}", url);
 
     let client = reqwest::Client::new();
-    let response = client.get(url).send().await?;
-    if response.status().is_success() {
+    let daily_urls = daily_urls_for_url(&client, &url).await?;
+
+    let mut igc_files = vec![];
+
+    for daily_url in daily_urls {
+        let url = daily_url.to_daily_url();
+        println!("Downloading HTML from: {}", url);
+
+        let response = client.get(url).send().await?;
+        if !response.status().is_success() {
+            eprintln!("Failed to download HTML: HTTP {}", response.status());
+            return Err(format!("HTTP error: {}", response.status()).into());
+        }
+
         let html = response.text().await?;
         println!("Successfully downloaded HTML ({} bytes)", html.len());
 
         // Parse HTML and extract IGC file information
-        let igc_files = parse_igc_files(&html)?;
-        println!("Found {} IGC files", igc_files.len());
+        let daily_igc_files = parse_igc_files(&html)?;
 
-        if igc_files.is_empty() {
-            println!("No IGC files found to download");
-            return Ok(());
-        }
+        igc_files.push((daily_url, daily_igc_files));
+    }
 
-        // Determine output directory and create directory structure
-        let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
+    if igc_files.is_empty() {
+        println!("No IGC files found to download");
+        return Ok(());
+    }
 
+    // Determine output directory and create directory structure
+    let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
+
+    let total_files = igc_files
+        .iter()
+        .map(|(_, files)| files.len())
+        .sum::<usize>();
+
+    println!("Found {} IGC files", total_files);
+
+    // Create progress bar
+    let progress_bar = ProgressBar::new(total_files as u64);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}")
+            .unwrap()
+            .progress_chars("#>-")
+    );
+
+    for (daily_info, igc_files) in igc_files {
         // Create directory structure: {output}/{competition}/{class}/{date}/
         let date_str = daily_info.date.strftime("%Y-%m-%d").to_string();
         let target_dir = output_dir
@@ -83,15 +93,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         fs::create_dir_all(&target_dir).await?;
         println!("Downloading to: {}", target_dir.display());
-
-        // Create progress bar
-        let progress_bar = ProgressBar::new(igc_files.len() as u64);
-        progress_bar.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}")
-                .unwrap()
-                .progress_chars("#>-")
-        );
 
         // Generate date prefix for filenames
         let date_prefix = date_to_igc_filename_prefix(daily_info.date);
@@ -122,14 +123,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             progress_bar.inc(1);
         }
-
-        progress_bar.finish_with_message("Download complete!");
-    } else {
-        eprintln!("Failed to download HTML: HTTP {}", response.status());
-        return Err(format!("HTTP error: {}", response.status()).into());
     }
 
+    progress_bar.finish_with_message("Download complete!");
+
     Ok(())
+}
+
+async fn daily_urls_for_url(
+    client: &reqwest::Client,
+    url: &Url,
+) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
+    let url_info = extract_url_info(&url)?;
+    Ok(match url_info {
+        UrlInfo::Daily(daily) => vec![daily],
+        UrlInfo::Class { competition, class } => {
+            get_daily_urls_for_competition(client, &competition)
+                .await?
+                .into_iter()
+                .filter(|info| info.class == class)
+                .collect()
+        }
+        UrlInfo::Competition { competition } => {
+            get_daily_urls_for_competition(client, &competition).await?
+        }
+    })
+}
+
+async fn get_daily_urls_for_competition(
+    client: &reqwest::Client,
+    competition: &str,
+) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
+    let url = format!("https://www.soaringspot.com/en_gb/{competition}/results");
+    println!("Downloading HTML from: {}", url);
+
+    let response = client.get(&url).send().await?;
+    if !response.status().is_success() {
+        return Err(format!("HTTP error {}: {}", response.status(), url).into());
+    }
+
+    let html = response.text().await?;
+    Ok(parser::parse_daily_results(&html)?)
 }
 
 async fn download_igc_file(
