@@ -1,5 +1,7 @@
+use crate::url_utils::{DailyUrlInfo, UrlInfo, extract_url_info};
 use html_escape::decode_html_entities;
 use scraper::{Html, Selector};
+use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct IgcFile {
@@ -57,6 +59,41 @@ fn extract_download_url(data_content: &str) -> Option<String> {
         .map(|href| format!("https://www.soaringspot.com{}", href))
 }
 
+/// Extracts all daily result URLs from a competition results page.
+///
+/// Returns a list of [DailyUrlInfo] for each class and task.
+pub fn parse_daily_results(html: &str) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
+    let document = Html::parse_document(html);
+    let mut daily_results = Vec::new();
+
+    // Select all links that point to daily results
+    // Looking for: /en_gb/{competition}/results/{class}/task-{n}-on-{date}/daily
+    let selector = Selector::parse(r#"a[href*="/results/"][href*="/daily"]"#)?;
+
+    for element in document.select(&selector) {
+        if let Some(href) = element.value().attr("href") {
+            // Skip practice tasks
+            if href.contains("practice-") {
+                continue;
+            }
+
+            // Construct full URL
+            let full_url = format!("https://www.soaringspot.com{}", href);
+
+            // Parse the URL to extract info
+            if let Ok(url) = Url::parse(&full_url) {
+                if let Ok(url_info) = extract_url_info(&url) {
+                    if let UrlInfo::Daily(daily_info) = url_info {
+                        daily_results.push(daily_info);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(daily_results)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -67,5 +104,18 @@ mod tests {
         let igc_files = parse_igc_files(html).expect("Failed to parse IGC files");
 
         insta::assert_debug_snapshot!(igc_files);
+    }
+
+    #[test]
+    fn test_parse_daily_results() {
+        let html = include_str!("../tests/fixtures/results.html");
+        let daily_results = parse_daily_results(html).unwrap();
+
+        // Should find tasks for all three classes: club, standard, 15-meter
+        // Each class should have 11 tasks (excluding practice tasks)
+        assert_eq!(daily_results.len(), 33); // 3 classes × 11 tasks
+
+        // Snapshot test for the structure
+        insta::assert_debug_snapshot!(daily_results);
     }
 }
