@@ -213,6 +213,14 @@ async fn download_igc_file(
 
     let content = response.bytes().await?;
 
+    // check for "Too Many Requests"
+    if std::str::from_utf8(&content)
+        .unwrap_or("")
+        .contains("<h1>Too Many Requests</h1>")
+    {
+        return Err("Received 'Too Many Requests' response".into());
+    }
+
     // Create a temporary file
     let temp_file = NamedTempFile::new()?;
     let temp_path = temp_file.path();
