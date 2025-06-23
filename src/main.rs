@@ -26,7 +26,7 @@ struct Args {
     /// - https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/standard
     ///
     /// - https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-4-on-2025-06-12/daily
-    url: String,
+    url: Url,
 
     /// Output directory for IGC files (defaults to current directory)
     #[arg(short, long)]
@@ -35,14 +35,13 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+    let mut args = Args::parse();
 
     // Parse and normalize URL, then extract info
-    let mut url = Url::parse(&args.url)?;
-    normalize_url_inplace(&mut url)?;
+    normalize_url_inplace(&mut args.url)?;
 
     let client = reqwest::Client::new();
-    let daily_urls = daily_urls_for_url(&client, &url).await?;
+    let daily_urls = daily_urls_for_url(&client, &args.url).await?;
 
     let progress_bar = ProgressBar::new(daily_urls.len() as u64);
     progress_bar.set_style(
