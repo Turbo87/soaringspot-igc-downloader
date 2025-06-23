@@ -15,9 +15,7 @@ use url::Url;
 use url_utils::{UrlInfo, extract_url_info, normalize_url_inplace};
 
 #[derive(Parser)]
-#[command(name = "soaringspot-igc-downloader")]
-#[command(about = "Downloads IGC files from SoaringSpot competition results")]
-#[command(version)]
+#[command(about, version)]
 struct Args {
     /// SoaringSpot URL to download from
     url: String,

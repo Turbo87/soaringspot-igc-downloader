@@ -1,5 +1,6 @@
 [package]
 name = "soaringspot-igc-downloader"
+description = "Downloads IGC files from SoaringSpot competition results"
 version = "0.0.0"
 edition = "2024"
 
