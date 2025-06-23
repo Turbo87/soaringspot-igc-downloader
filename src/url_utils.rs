@@ -3,6 +3,7 @@ use url::Url;
 
 #[derive(Debug)]
 pub struct UrlInfo {
+    pub competition: String,
     pub class: String,
     pub date: Date,
 }
@@ -60,6 +61,9 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
         return Err("URL must end with '/daily' for daily results".into());
     }
 
+    // The competition name is the second segment (index 1)
+    let competition = segments[1].to_string();
+
     // The class is the fourth segment (index 3)
     let class = segments[3].to_string();
 
@@ -80,7 +84,11 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
     let date = Date::strptime("%Y-%m-%d", date_str)
         .map_err(|e| format!("Failed to parse date '{}': {}", date_str, e))?;
 
-    Ok(UrlInfo { class, date })
+    Ok(UrlInfo {
+        competition,
+        class,
+        date,
+    })
 }
 
 #[cfg(test)]
@@ -127,6 +135,7 @@ mod tests {
         let info = extract_url_info(&url).unwrap();
         insta::assert_debug_snapshot!(info, @r#"
         UrlInfo {
+            competition: "39th-fai-world-gliding-championships-tabor-2025",
             class: "club",
             date: 2025-06-19,
         }
@@ -138,6 +147,7 @@ mod tests {
         let info = extract_url_info(&url).unwrap();
         insta::assert_debug_snapshot!(info, @r#"
         UrlInfo {
+            competition: "competition",
             class: "standard",
             date: 2024-07-15,
         }

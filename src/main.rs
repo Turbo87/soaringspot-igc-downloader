@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut url = Url::parse(&args.url)?;
     normalize_url_inplace(&mut url)?;
     let url_info = extract_url_info(&url)?;
-    println!("Class: {}, Date: {}", url_info.class, url_info.date);
+    println!("Competition: {}, Class: {}, Date: {}", url_info.competition, url_info.class, url_info.date);
 
     println!("Downloading HTML from: {}", url);
 
