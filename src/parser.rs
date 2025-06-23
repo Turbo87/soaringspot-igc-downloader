@@ -82,10 +82,8 @@ pub fn parse_daily_results(html: &str) -> Result<Vec<DailyUrlInfo>, Box<dyn std:
 
             // Parse the URL to extract info
             if let Ok(url) = Url::parse(&full_url) {
-                if let Ok(url_info) = extract_url_info(&url) {
-                    if let UrlInfo::Daily(daily_info) = url_info {
-                        daily_results.push(daily_info);
-                    }
+                if let Ok(UrlInfo::Daily(daily_info)) = extract_url_info(&url) {
+                    daily_results.push(daily_info);
                 }
             }
         }
