@@ -122,7 +122,7 @@ mod tests {
                 competition: "39th-fai-world-gliding-championships-tabor-2025",
                 class: "club",
                 date: 2025-06-19,
-                task_number: 10,
+                task_name: "task-10",
             },
         )
         "#);
@@ -137,7 +137,7 @@ mod tests {
                 competition: "39th-fai-world-gliding-championships-tabor-2025",
                 class: "club",
                 date: 2025-06-19,
-                task_number: 10,
+                task_name: "task-10",
             },
         )
         "#);
@@ -152,7 +152,7 @@ mod tests {
                 competition: "competition",
                 class: "standard",
                 date: 2024-07-15,
-                task_number: 5,
+                task_name: "task-5",
             },
         )
         "#);
@@ -247,7 +247,7 @@ mod tests {
             competition: "39th-fai-world-gliding-championships-tabor-2025".to_string(),
             class: "club".to_string(),
             date: Date::constant(2025, 6, 19),
-            task_number: 10,
+            task_name: "task-10".to_string(),
         };
 
         let url = daily_info.to_daily_url();
@@ -258,7 +258,7 @@ mod tests {
             competition: "test-competition".to_string(),
             class: "standard".to_string(),
             date: Date::constant(2024, 12, 1),
-            task_number: 5,
+            task_name: "task-5".to_string(),
         };
 
         let url = daily_info.to_daily_url();
