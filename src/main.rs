@@ -113,31 +113,22 @@ fn parse_igc_files(html: &str) -> Result<Vec<IgcFile>, Box<dyn std::error::Error
 }
 
 fn extract_download_url(data_content: &str) -> Option<String> {
-    // The data_content contains HTML-encoded content like:
-    // "&#x2F;en_gb&#x2F;download-contest-flight&#x2F;5039-10179576293&#x3F;dl&#x3D;1"
-    // We need to decode it and extract the URL
-
+    // The data_content contains HTML-encoded content
+    // We need to decode it and extract the download URL with ?dl=1
     // Decode HTML entities using the html-escape library
     let decoded = decode_html_entities(data_content);
 
-    // Look for the download URL with ?dl=1 parameter (second occurrence)
-    let mut last_url = None;
-    let mut search_start = 0;
+    // Parse the decoded HTML fragment using scraper
+    let fragment = Html::parse_fragment(&decoded);
 
-    while let Some(start_pos) =
-        decoded[search_start..].find(r#"href="/en_gb/download-contest-flight/"#)
-    {
-        let actual_pos = search_start + start_pos;
-        let href_start = actual_pos + 6; // Skip 'href="'
+    // Select all links that contain "download-contest-flight" and have ?dl=1
+    let link_selector = Selector::parse(r#"a[href*="download-contest-flight"][href*="dl=1"]"#)
+        .expect("Invalid CSS selector");
 
-        if let Some(end_pos) = decoded[href_start..].find('"') {
-            let url_part = &decoded[href_start..href_start + end_pos];
-            last_url = Some(format!("https://www.soaringspot.com{}", url_part));
-            search_start = href_start + end_pos + 1;
-        } else {
-            break;
-        }
-    }
-
-    last_url
+    // Find the first matching link and extract its href
+    fragment
+        .select(&link_selector)
+        .next()
+        .and_then(|element| element.value().attr("href"))
+        .map(|href| format!("https://www.soaringspot.com{}", href))
 }
