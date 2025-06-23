@@ -41,13 +41,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn normalize_url(url_str: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut url = Url::parse(url_str)?;
 
-    // Validate that it's a SoaringSpot URL
-    if url.host_str() != Some("www.soaringspot.com") {
-        return Err("URL must be from www.soaringspot.com".into());
+    // Normalize scheme to HTTPS
+    if url.scheme() == "http" {
+        url.set_scheme("https")
+            .map_err(|_| "Failed to convert to HTTPS")?;
+    } else if url.scheme() != "https" {
+        return Err("URL must use HTTP or HTTPS scheme".into());
     }
 
-    if url.scheme() != "https" {
-        return Err("URL must use HTTPS".into());
+    // Validate and normalize the host
+    let host = url.host_str().ok_or("Invalid URL - missing host")?;
+    if host == "soaringspot.com" {
+        // Add www prefix if missing
+        url.set_host(Some("www.soaringspot.com"))?;
+    } else if host != "www.soaringspot.com" {
+        return Err("URL must be from soaringspot.com or www.soaringspot.com".into());
     }
 
     // Parse the path segments
