@@ -18,6 +18,14 @@ use url_utils::{UrlInfo, extract_url_info, normalize_url_inplace};
 #[command(about, version)]
 struct Args {
     /// SoaringSpot URL to download from
+    ///
+    /// Examples:
+    ///
+    /// - https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025
+    ///
+    /// - https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/standard
+    ///
+    /// - https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-4-on-2025-06-12/daily
     url: String,
 
     /// Output directory for IGC files (defaults to current directory)
