@@ -1,4 +1,5 @@
 use clap::Parser;
+use html_escape::decode_html_entities;
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -116,13 +117,8 @@ fn extract_download_url(data_content: &str) -> Option<String> {
     // "&#x2F;en_gb&#x2F;download-contest-flight&#x2F;5039-10179576293&#x3F;dl&#x3D;1"
     // We need to decode it and extract the URL
 
-    // Simple HTML entity decoder for the specific entities we need
-    let decoded = data_content
-        .replace("&#x2F;", "/")
-        .replace("&#x3D;", "=")
-        .replace("&#x3B;", ";")
-        .replace("&#x20;", " ")
-        .replace("&#x0A;", "\n");
+    // Decode HTML entities using the html-escape library
+    let decoded = decode_html_entities(data_content);
 
     // Look for the download URL with ?dl=1 parameter (second occurrence)
     let mut last_url = None;
