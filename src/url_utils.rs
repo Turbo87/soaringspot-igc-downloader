@@ -1,9 +1,10 @@
+use jiff::civil::Date;
 use url::Url;
 
 #[derive(Debug)]
 pub struct UrlInfo {
     pub class: String,
-    pub date: String,
+    pub date: Date,
 }
 
 pub fn normalize_url_inplace(url: &mut Url) -> Result<(), Box<dyn std::error::Error>> {
@@ -71,12 +72,13 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
     }
 
     // Extract date from task-{n}-on-{date}
-    let (_, date) = task_segment
+    let (_, date_str) = task_segment
         .split_once("-on-")
         .ok_or("Could not extract date from task segment")?;
 
-    Ok(UrlInfo {
-        class,
-        date: date.to_string(),
-    })
+    // Parse the date string using jiff
+    let date = Date::strptime("%Y-%m-%d", date_str)
+        .map_err(|e| format!("Failed to parse date '{}': {}", date_str, e))?;
+
+    Ok(UrlInfo { class, date })
 }

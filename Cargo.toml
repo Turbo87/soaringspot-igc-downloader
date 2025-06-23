@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 html-escape = "0.2"
+jiff = "0.1"
 reqwest = { version = "0.12", features = ["json"] }
 scraper = "0.23"
 tokio = { version = "1.0", features = ["full"] }
