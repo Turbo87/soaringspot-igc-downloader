@@ -38,26 +38,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let daily_urls = daily_urls_for_url(&client, &url).await?;
 
-    let mut igc_files = vec![];
+    let progress_bar = ProgressBar::new(daily_urls.len() as u64);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}")
+            .unwrap()
+            .progress_chars("#>-")
+    );
 
+    let mut igc_files = vec![];
     for daily_url in daily_urls {
         let url = daily_url.to_daily_url();
-        println!("Downloading HTML from: {}", url);
+        progress_bar.set_message(format!(
+            "Loading results page for {} class on {}",
+            daily_url.class, daily_url.date
+        ));
 
         let response = client.get(url).send().await?;
         if !response.status().is_success() {
-            eprintln!("Failed to download HTML: HTTP {}", response.status());
+            progress_bar.println(format!(
+                "Failed to download HTML: HTTP {}",
+                response.status()
+            ));
             return Err(format!("HTTP error: {}", response.status()).into());
         }
 
         let html = response.text().await?;
-        println!("Successfully downloaded HTML ({} bytes)", html.len());
 
         // Parse HTML and extract IGC file information
         let daily_igc_files = parse_igc_files(&html)?;
+        progress_bar.println(format!(
+            "✓ Processed: {} class on {}",
+            daily_url.class, daily_url.date
+        ));
+        progress_bar.inc(1);
 
         igc_files.push((daily_url, daily_igc_files));
     }
+
+    progress_bar.finish_with_message("Download complete!");
 
     if igc_files.is_empty() {
         println!("No IGC files found to download");
@@ -134,7 +153,7 @@ async fn daily_urls_for_url(
     client: &reqwest::Client,
     url: &Url,
 ) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
-    let url_info = extract_url_info(&url)?;
+    let url_info = extract_url_info(url)?;
     Ok(match url_info {
         UrlInfo::Daily(daily) => vec![daily],
         UrlInfo::Class { competition, class } => {
@@ -155,7 +174,7 @@ async fn get_daily_urls_for_competition(
     competition: &str,
 ) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
     let url = format!("https://www.soaringspot.com/en_gb/{competition}/results");
-    println!("Downloading HTML from: {}", url);
+    println!("Loading results page from: {}", url);
 
     let response = client.get(&url).send().await?;
     if !response.status().is_success() {
@@ -163,7 +182,7 @@ async fn get_daily_urls_for_competition(
     }
 
     let html = response.text().await?;
-    Ok(parser::parse_daily_results(&html)?)
+    parser::parse_daily_results(&html)
 }
 
 async fn download_igc_file(
