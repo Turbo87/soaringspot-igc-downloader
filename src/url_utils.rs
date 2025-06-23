@@ -9,6 +9,17 @@ pub struct DailyUrlInfo {
     pub task_number: u32,
 }
 
+impl DailyUrlInfo {
+    /// Generates a daily result URL from the DailyUrlInfo
+    pub fn to_daily_url(&self) -> String {
+        let date_str = self.date.strftime("%Y-%m-%d").to_string();
+        format!(
+            "https://www.soaringspot.com/en_gb/{}/results/{}/task-{}-on-{}/daily",
+            self.competition, self.class, self.task_number, date_str
+        )
+    }
+}
+
 #[derive(Debug)]
 pub enum UrlInfo {
     /// Daily results - has competition, class, and date
@@ -240,5 +251,45 @@ mod tests {
         let url = Url::parse(url).unwrap();
         let result = extract_url_info(&url);
         insta::assert_snapshot!(result.unwrap_err(), @"Failed to parse date 'invalid-date': strptime parsing failed: %Y failed: failed to parse year: invalid number, no digits found");
+    }
+
+    #[test]
+    fn test_daily_url_info_to_daily_url() {
+        // Test URL generation
+        let daily_info = DailyUrlInfo {
+            competition: "39th-fai-world-gliding-championships-tabor-2025".to_string(),
+            class: "club".to_string(),
+            date: Date::constant(2025, 6, 19),
+            task_number: 10,
+        };
+
+        let url = daily_info.to_daily_url();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-10-on-2025-06-19/daily");
+
+        // Test with different values
+        let daily_info = DailyUrlInfo {
+            competition: "test-competition".to_string(),
+            class: "standard".to_string(),
+            date: Date::constant(2024, 12, 1),
+            task_number: 5,
+        };
+
+        let url = daily_info.to_daily_url();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/test-competition/results/standard/task-5-on-2024-12-01/daily");
+    }
+
+    #[test]
+    fn test_url_roundtrip() {
+        // Test that we can parse a URL and generate the same URL back
+        let original_url = "https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-10-on-2025-06-19/daily";
+        let parsed_url = Url::parse(original_url).unwrap();
+        let url_info = extract_url_info(&parsed_url).unwrap();
+
+        if let UrlInfo::Daily(daily_info) = url_info {
+            let generated_url = daily_info.to_daily_url();
+            assert_eq!(generated_url, original_url);
+        } else {
+            panic!("Expected Daily variant");
+        }
     }
 }
