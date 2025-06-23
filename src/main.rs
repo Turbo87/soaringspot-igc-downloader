@@ -31,6 +31,10 @@ struct Args {
     /// Output directory for IGC files (defaults to current directory)
     #[arg(short, long)]
     output: Option<PathBuf>,
+
+    /// Include practice days in the downloads
+    #[arg(long)]
+    include_practice: bool,
 }
 
 #[tokio::main]
@@ -38,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let client = reqwest::Client::new();
-    let daily_urls = daily_urls_for_url(&client, &args.url).await?;
+    let daily_urls = daily_urls_for_url(&client, &args.url, args.include_practice).await?;
 
     let progress_bar = ProgressBar::new(daily_urls.len() as u64);
     progress_bar.set_style(
@@ -154,19 +158,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn daily_urls_for_url(
     client: &reqwest::Client,
     url: &Url,
+    include_practice: bool,
 ) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
     let url_info = extract_url_info(url)?;
     Ok(match url_info {
         UrlInfo::Daily(daily) => vec![daily],
         UrlInfo::Class { competition, class } => {
-            get_daily_urls_for_competition(client, &competition)
+            get_daily_urls_for_competition(client, &competition, include_practice)
                 .await?
                 .into_iter()
                 .filter(|info| info.class == class)
                 .collect()
         }
         UrlInfo::Competition { competition } => {
-            get_daily_urls_for_competition(client, &competition).await?
+            get_daily_urls_for_competition(client, &competition, include_practice).await?
         }
     })
 }
@@ -174,6 +179,7 @@ async fn daily_urls_for_url(
 async fn get_daily_urls_for_competition(
     client: &reqwest::Client,
     competition: &str,
+    include_practice: bool,
 ) -> Result<Vec<DailyUrlInfo>, Box<dyn std::error::Error>> {
     let url = format!("https://www.soaringspot.com/en_gb/{competition}/results");
     println!("Loading results page from: {}", url);
@@ -184,7 +190,13 @@ async fn get_daily_urls_for_competition(
     }
 
     let html = response.text().await?;
-    parser::parse_daily_results(&html)
+    Ok(parser::parse_daily_results(&html)?
+        .into_iter()
+        .filter(|info| {
+            // Filter out practice days if not requested
+            include_practice || !info.is_practice_day()
+        })
+        .collect())
 }
 
 async fn download_igc_file(

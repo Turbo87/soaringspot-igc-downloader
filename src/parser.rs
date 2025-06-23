@@ -72,11 +72,6 @@ pub fn parse_daily_results(html: &str) -> Result<Vec<DailyUrlInfo>, Box<dyn std:
 
     for element in document.select(&selector) {
         if let Some(href) = element.value().attr("href") {
-            // Skip practice tasks
-            if href.contains("practice-") {
-                continue;
-            }
-
             // Construct full URL
             let full_url = format!("https://www.soaringspot.com{}", href);
 
