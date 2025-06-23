@@ -11,7 +11,7 @@ use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use url::Url;
-use url_utils::{extract_url_info, normalize_url_inplace};
+use url_utils::{UrlInfo, extract_url_info, normalize_url_inplace};
 
 #[derive(Parser)]
 #[command(name = "soaringspot-igc-downloader")]
@@ -34,10 +34,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut url = Url::parse(&args.url)?;
     normalize_url_inplace(&mut url)?;
     let url_info = extract_url_info(&url)?;
-    println!(
-        "Competition: {}, Class: {}, Date: {}",
-        url_info.competition, url_info.class, url_info.date
-    );
+    let daily_info = match &url_info {
+        UrlInfo::Daily(daily_info) => {
+            println!(
+                "Competition: {}, Class: {}, Date: {}",
+                daily_info.competition, daily_info.class, daily_info.date
+            );
+            daily_info.clone()
+        }
+        UrlInfo::Class { competition, class } => {
+            println!("Competition: {}, Class: {} (all dates)", competition, class);
+            // TODO: Implement discovery of all dates for this class
+            return Err("Multi-date downloads not yet implemented".into());
+        }
+        UrlInfo::Competition { competition } => {
+            println!("Competition: {} (all classes and dates)", competition);
+            // TODO: Implement discovery of all classes and dates
+            return Err("Multi-class downloads not yet implemented".into());
+        }
+    };
 
     println!("Downloading HTML from: {}", url);
 
@@ -60,10 +75,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
 
         // Create directory structure: {output}/{competition}/{class}/{date}/
-        let date_str = url_info.date.strftime("%Y-%m-%d").to_string();
+        let date_str = daily_info.date.strftime("%Y-%m-%d").to_string();
         let target_dir = output_dir
-            .join(&url_info.competition)
-            .join(&url_info.class)
+            .join(&daily_info.competition)
+            .join(&daily_info.class)
             .join(date_str);
 
         fs::create_dir_all(&target_dir).await?;
@@ -79,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
         // Generate date prefix for filenames
-        let date_prefix = date_to_igc_filename_prefix(url_info.date);
+        let date_prefix = date_to_igc_filename_prefix(daily_info.date);
 
         // Download each IGC file
         for igc_file in igc_files {

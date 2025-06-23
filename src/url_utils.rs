@@ -1,11 +1,21 @@
 use jiff::civil::Date;
 use url::Url;
 
-#[derive(Debug)]
-pub struct UrlInfo {
+#[derive(Debug, Clone)]
+pub struct DailyUrlInfo {
     pub competition: String,
     pub class: String,
     pub date: Date,
+}
+
+#[derive(Debug)]
+pub enum UrlInfo {
+    /// Daily results - has competition, class, and date
+    Daily(DailyUrlInfo),
+    /// Class results - has competition and class, needs to discover all dates
+    Class { competition: String, class: String },
+    /// All competition results - has competition only, needs to discover all classes and dates
+    Competition { competition: String },
 }
 
 pub fn normalize_url_inplace(url: &mut Url) -> Result<(), Box<dyn std::error::Error>> {
@@ -44,39 +54,48 @@ pub fn normalize_url_inplace(url: &mut Url) -> Result<(), Box<dyn std::error::Er
 }
 
 pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>> {
-    let segments: Vec<&str> = url.path_segments().ok_or("Invalid URL path")?.collect();
+    let mut segments = url.path_segments().ok_or("Invalid URL path")?;
 
-    // Expected pattern: /en_gb/{event}/results/{class}/task-{n}-on-{date}/daily
-    if segments.len() < 6 {
-        return Err("URL does not contain enough path segments for daily results".into());
+    // Get language code
+    let _language = segments
+        .next()
+        .ok_or("Invalid URL format - missing path segments")?;
+
+    // Get competition name
+    let competition = segments
+        .next()
+        .ok_or("URL must contain competition name")?
+        .to_string();
+
+    // Pattern: /en_gb/{competition}
+    let Some(third_segment) = segments.next() else {
+        return Ok(UrlInfo::Competition { competition });
+    };
+
+    // Must be a results URL from here
+    if third_segment != "results" {
+        return Err("Unsupported URL format".into());
     }
 
-    // Verify "results" is the third segment
-    if segments[2] != "results" {
-        return Err("'results' must be the third path segment".into());
-    }
+    // Pattern: /en_gb/{competition}/results
+    let Some(class) = segments.next() else {
+        return Ok(UrlInfo::Competition { competition });
+    };
 
-    // Verify the URL ends with "daily"
-    if segments[5] != "daily" {
-        return Err("URL must end with '/daily' for daily results".into());
-    }
+    let class = class.to_string();
 
-    // The competition name is the second segment (index 1)
-    let competition = segments[1].to_string();
+    // Pattern: /en_gb/{competition}/results/{class}
+    let Some(task) = segments.next() else {
+        return Ok(UrlInfo::Class { competition, class });
+    };
 
-    // The class is the fourth segment (index 3)
-    let class = segments[3].to_string();
-
-    // The task segment should be the fifth segment (index 4)
-    let task_segment = segments[4];
-
-    // Verify it has the expected task-{n}-on-{date} pattern
-    if !task_segment.starts_with("task-") || !task_segment.contains("-on-") {
-        return Err("Fifth segment must be a task segment with date (task-{n}-on-{date})".into());
+    // Pattern: /en_gb/{competition}/results/{class}/task-N-on-DATE(/daily)?
+    if !task.starts_with("task-") || !task.contains("-on-") {
+        return Err("Unsupported URL format".into());
     }
 
     // Extract date from task-{n}-on-{date}
-    let (_, date_str) = task_segment
+    let (_, date_str) = task
         .split_once("-on-")
         .ok_or("Could not extract date from task segment")?;
 
@@ -84,11 +103,11 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
     let date = Date::strptime("%Y-%m-%d", date_str)
         .map_err(|e| format!("Failed to parse date '{}': {}", date_str, e))?;
 
-    Ok(UrlInfo {
+    Ok(UrlInfo::Daily(DailyUrlInfo {
         competition,
         class,
         date,
-    })
+    }))
 }
 
 #[cfg(test)]
@@ -134,11 +153,13 @@ mod tests {
         let url = Url::parse(url).unwrap();
         let info = extract_url_info(&url).unwrap();
         insta::assert_debug_snapshot!(info, @r#"
-        UrlInfo {
-            competition: "39th-fai-world-gliding-championships-tabor-2025",
-            class: "club",
-            date: 2025-06-19,
-        }
+        Daily(
+            DailyUrlInfo {
+                competition: "39th-fai-world-gliding-championships-tabor-2025",
+                class: "club",
+                date: 2025-06-19,
+            },
+        )
         "#);
 
         // Test different class
@@ -146,36 +167,63 @@ mod tests {
         let url = Url::parse(url).unwrap();
         let info = extract_url_info(&url).unwrap();
         insta::assert_debug_snapshot!(info, @r#"
-        UrlInfo {
-            competition: "competition",
-            class: "standard",
-            date: 2024-07-15,
+        Daily(
+            DailyUrlInfo {
+                competition: "competition",
+                class: "standard",
+                date: 2024-07-15,
+            },
+        )
+        "#);
+
+        // Test competition URL
+        let url = "https://www.soaringspot.com/en_gb/test";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        Competition {
+            competition: "test",
+        }
+        "#);
+
+        // Test class URL
+        let url = "https://www.soaringspot.com/en_gb/test/results/club";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        Class {
+            competition: "test",
+            class: "club",
+        }
+        "#);
+
+        // Test all competition results URL
+        let url = "https://www.soaringspot.com/en_gb/test/results";
+        let url = Url::parse(url).unwrap();
+        let info = extract_url_info(&url).unwrap();
+        insta::assert_debug_snapshot!(info, @r#"
+        Competition {
+            competition: "test",
         }
         "#);
 
         // Test error cases
-        let url = "https://www.soaringspot.com/en_gb/test";
+        let url = "https://www.soaringspot.com/en_gb";
         let url = Url::parse(url).unwrap();
         let result = extract_url_info(&url);
-        insta::assert_snapshot!(result.unwrap_err(), @"URL does not contain enough path segments for daily results");
+        insta::assert_snapshot!(result.unwrap_err(), @"URL must contain competition name");
 
         let url = "https://www.soaringspot.com/en_gb/test/invalid/club/task-1-on-2025-01-01/daily";
         let url = Url::parse(url).unwrap();
         let result = extract_url_info(&url);
-        insta::assert_snapshot!(result.unwrap_err(), @"'results' must be the third path segment");
+        insta::assert_snapshot!(result.unwrap_err(), @"Unsupported URL format");
 
-        let url = "https://www.soaringspot.com/en_gb/test/results/club/task-1-on-2025-01-01/other";
+        let url = "https://www.soaringspot.com/en_gb/test/results/club/invalid-format";
         let url = Url::parse(url).unwrap();
         let result = extract_url_info(&url);
-        insta::assert_snapshot!(result.unwrap_err(), @"URL must end with '/daily' for daily results");
+        insta::assert_snapshot!(result.unwrap_err(), @"Unsupported URL format");
 
-        let url = "https://www.soaringspot.com/en_gb/test/results/club/invalid-format/daily";
-        let url = Url::parse(url).unwrap();
-        let result = extract_url_info(&url);
-        insta::assert_snapshot!(result.unwrap_err(), @"Fifth segment must be a task segment with date (task-{n}-on-{date})");
-
-        let url =
-            "https://www.soaringspot.com/en_gb/test/results/club/task-1-on-invalid-date/daily";
+        let url = "https://www.soaringspot.com/en_gb/test/results/club/task-1-on-invalid-date";
         let url = Url::parse(url).unwrap();
         let result = extract_url_info(&url);
         insta::assert_snapshot!(result.unwrap_err(), @"Failed to parse date 'invalid-date': strptime parsing failed: %Y failed: failed to parse year: invalid number, no digits found");
