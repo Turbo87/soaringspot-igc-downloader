@@ -12,7 +12,7 @@ use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use url::Url;
-use url_utils::{UrlInfo, extract_url_info, normalize_url_inplace};
+use url_utils::{UrlInfo, extract_url_info};
 
 #[derive(Parser)]
 #[command(about, version)]
@@ -35,10 +35,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut args = Args::parse();
-
-    // Parse and normalize URL, then extract info
-    normalize_url_inplace(&mut args.url)?;
+    let args = Args::parse();
 
     let client = reqwest::Client::new();
     let daily_urls = daily_urls_for_url(&client, &args.url).await?;
