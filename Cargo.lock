@@ -1110,6 +1110,7 @@ dependencies = [
  "clap",
  "reqwest",
  "tokio",
+ "url",
 ]
 
 [[package]]

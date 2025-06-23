@@ -1,4 +1,5 @@
 use clap::Parser;
+use url::Url;
 
 #[derive(Parser)]
 #[command(name = "soaringspot-igc-downloader")]
@@ -37,25 +38,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn normalize_url(url: &str) -> Result<String, Box<dyn std::error::Error>> {
-    if !url.starts_with("https://www.soaringspot.com/") {
+fn normalize_url(url_str: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut url = Url::parse(url_str)?;
+
+    // Validate that it's a SoaringSpot URL
+    if url.host_str() != Some("www.soaringspot.com") {
         return Err("URL must be from www.soaringspot.com".into());
     }
 
-    // Extract the path after the domain
-    let domain_prefix = "https://www.soaringspot.com";
-    let path = &url[domain_prefix.len()..];
-
-    // Split the path and replace the language code
-    let parts: Vec<&str> = path.split('/').collect();
-    if parts.len() < 2 {
-        return Err("Invalid URL format".into());
+    if url.scheme() != "https" {
+        return Err("URL must use HTTPS".into());
     }
 
-    // Replace the language code (second part, first is empty due to leading /)
-    let mut normalized_parts = parts;
-    normalized_parts[1] = "en_gb";
+    // Parse the path segments
+    let mut segments: Vec<&str> = url.path_segments().ok_or("Invalid URL path")?.collect();
 
-    let normalized_path = normalized_parts.join("/");
-    Ok(format!("{}{}", domain_prefix, normalized_path))
+    if segments.is_empty() {
+        return Err("Invalid URL format - missing path segments".into());
+    }
+
+    // Replace the language code (first segment) with en_gb
+    segments[0] = "en_gb";
+
+    // Reconstruct the path
+    let new_path = format!("/{}", segments.join("/"));
+    url.set_path(&new_path);
+
+    Ok(url.to_string())
 }
