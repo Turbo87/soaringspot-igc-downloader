@@ -28,17 +28,16 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    // Normalize URL to use en_gb language code
-    let url = normalize_url(&args.url)?;
-
-    // Extract class and date information from URL
+    // Parse and normalize URL, then extract info
+    let mut url = Url::parse(&args.url)?;
+    normalize_url_inplace(&mut url)?;
     let url_info = extract_url_info(&url)?;
     println!("Class: {}, Date: {}", url_info.class, url_info.date);
 
     println!("Downloading HTML from: {}", url);
 
     let client = reqwest::Client::new();
-    let response = client.get(&url).send().await?;
+    let response = client.get(url).send().await?;
     if response.status().is_success() {
         let html = response.text().await?;
         println!("Successfully downloaded HTML ({} bytes)", html.len());
@@ -62,9 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn normalize_url(url_str: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let mut url = Url::parse(url_str)?;
-
+fn normalize_url_inplace(url: &mut Url) -> Result<(), Box<dyn std::error::Error>> {
     // Normalize scheme to HTTPS
     if url.scheme() == "http" {
         url.set_scheme("https")
@@ -96,14 +93,11 @@ fn normalize_url(url_str: &str) -> Result<String, Box<dyn std::error::Error>> {
     let new_path = format!("/{}", segments.join("/"));
     url.set_path(&new_path);
 
-    Ok(url.to_string())
+    Ok(())
 }
 
-fn extract_url_info(url_str: &str) -> Result<UrlInfo, Box<dyn std::error::Error>> {
-    let url = Url::parse(url_str)?;
-
+fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>> {
     let segments: Vec<&str> = url.path_segments().ok_or("Invalid URL path")?.collect();
-
     // Expected pattern: /en_gb/{event}/results/{class}/task-{n}-on-{date}/daily
     if segments.len() < 6 {
         return Err("URL does not contain enough path segments for daily results".into());
