@@ -1,0 +1,170 @@
+---
+source: src/parser.rs
+expression: igc_files
+---
+[
+    IgcFile {
+        callsign: "AM",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576293?dl=1",
+    },
+    IgcFile {
+        callsign: "A3",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576289?dl=1",
+    },
+    IgcFile {
+        callsign: "CP",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576272?dl=1",
+    },
+    IgcFile {
+        callsign: "FL",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576287?dl=1",
+    },
+    IgcFile {
+        callsign: "FLS",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576281?dl=1",
+    },
+    IgcFile {
+        callsign: "AG",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576279?dl=1",
+    },
+    IgcFile {
+        callsign: "194",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576280?dl=1",
+    },
+    IgcFile {
+        callsign: "PP",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576312?dl=1",
+    },
+    IgcFile {
+        callsign: "KT",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576306?dl=1",
+    },
+    IgcFile {
+        callsign: "SN",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576309?dl=1",
+    },
+    IgcFile {
+        callsign: "GE",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576311?dl=1",
+    },
+    IgcFile {
+        callsign: "W",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576294?dl=1",
+    },
+    IgcFile {
+        callsign: "B6",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576277?dl=1",
+    },
+    IgcFile {
+        callsign: "CRN",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576295?dl=1",
+    },
+    IgcFile {
+        callsign: "1A",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576296?dl=1",
+    },
+    IgcFile {
+        callsign: "XI",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576298?dl=1",
+    },
+    IgcFile {
+        callsign: "SF",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576290?dl=1",
+    },
+    IgcFile {
+        callsign: "FY",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576292?dl=1",
+    },
+    IgcFile {
+        callsign: "NW",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576310?dl=1",
+    },
+    IgcFile {
+        callsign: "RSM",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576301?dl=1",
+    },
+    IgcFile {
+        callsign: "AD",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576288?dl=1",
+    },
+    IgcFile {
+        callsign: "IX",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576285?dl=1",
+    },
+    IgcFile {
+        callsign: "MN",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576283?dl=1",
+    },
+    IgcFile {
+        callsign: "B4",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576278?dl=1",
+    },
+    IgcFile {
+        callsign: "KM",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576308?dl=1",
+    },
+    IgcFile {
+        callsign: "Y3",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576271?dl=1",
+    },
+    IgcFile {
+        callsign: "CX",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576303?dl=1",
+    },
+    IgcFile {
+        callsign: "ZS",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576299?dl=1",
+    },
+    IgcFile {
+        callsign: "YC",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576273?dl=1",
+    },
+    IgcFile {
+        callsign: "LAB",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576274?dl=1",
+    },
+    IgcFile {
+        callsign: "6L",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576284?dl=1",
+    },
+    IgcFile {
+        callsign: "XW",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576305?dl=1",
+    },
+    IgcFile {
+        callsign: "FP",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576286?dl=1",
+    },
+    IgcFile {
+        callsign: "T5",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576302?dl=1",
+    },
+    IgcFile {
+        callsign: "HR3",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576282?dl=1",
+    },
+    IgcFile {
+        callsign: "Y2",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576300?dl=1",
+    },
+    IgcFile {
+        callsign: "HG",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576276?dl=1",
+    },
+    IgcFile {
+        callsign: "RZ",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576304?dl=1",
+    },
+    IgcFile {
+        callsign: "44",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576297?dl=1",
+    },
+    IgcFile {
+        callsign: "S5",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576275?dl=1",
+    },
+    IgcFile {
+        callsign: "GM",
+        download_url: "https://www.soaringspot.com/en_gb/download-contest-flight/5039-10179576291?dl=1",
+    },
+]

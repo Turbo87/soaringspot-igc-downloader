@@ -56,3 +56,16 @@ fn extract_download_url(data_content: &str) -> Option<String> {
         .and_then(|element| element.value().attr("href"))
         .map(|href| format!("https://www.soaringspot.com{}", href))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_igc_files_snapshot() {
+        let html = include_str!("../tests/fixtures/day.html");
+        let igc_files = parse_igc_files(html).expect("Failed to parse IGC files");
+
+        insta::assert_debug_snapshot!(igc_files);
+    }
+}
