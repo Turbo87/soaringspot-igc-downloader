@@ -1,6 +1,7 @@
 [package]
 name = "soaringspot-igc-downloader"
 description = "Downloads IGC files from SoaringSpot competition results"
+license = "MIT OR Apache-2.0"
 version = "0.0.0"
 edition = "2024"
 
