@@ -6,6 +6,7 @@ pub struct DailyUrlInfo {
     pub competition: String,
     pub class: String,
     pub date: Date,
+    pub task_number: u32,
 }
 
 #[derive(Debug)]
@@ -94,10 +95,19 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
         return Err("Unsupported URL format".into());
     }
 
-    // Extract date from task-{n}-on-{date}
-    let (_, date_str) = task
+    // Extract task number and date from task-{n}-on-{date}
+    let (task_part, date_str) = task
         .split_once("-on-")
         .ok_or("Could not extract date from task segment")?;
+
+    // Extract task number from "task-{n}"
+    let task_number_str = task_part
+        .strip_prefix("task-")
+        .ok_or("Task segment must start with 'task-'")?;
+
+    let task_number = task_number_str
+        .parse::<u32>()
+        .map_err(|e| format!("Failed to parse task number '{}': {}", task_number_str, e))?;
 
     // Parse the date string using jiff
     let date = Date::strptime("%Y-%m-%d", date_str)
@@ -107,6 +117,7 @@ pub fn extract_url_info(url: &Url) -> Result<UrlInfo, Box<dyn std::error::Error>
         competition,
         class,
         date,
+        task_number,
     }))
 }
 
@@ -158,6 +169,7 @@ mod tests {
                 competition: "39th-fai-world-gliding-championships-tabor-2025",
                 class: "club",
                 date: 2025-06-19,
+                task_number: 10,
             },
         )
         "#);
@@ -172,6 +184,7 @@ mod tests {
                 competition: "competition",
                 class: "standard",
                 date: 2024-07-15,
+                task_number: 5,
             },
         )
         "#);

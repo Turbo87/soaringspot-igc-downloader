@@ -37,8 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let daily_info = match &url_info {
         UrlInfo::Daily(daily_info) => {
             println!(
-                "Competition: {}, Class: {}, Date: {}",
-                daily_info.competition, daily_info.class, daily_info.date
+                "Competition: {}, Class: {}, Date: {}, Task: {}",
+                daily_info.competition, daily_info.class, daily_info.date, daily_info.task_number
             );
             daily_info.clone()
         }
