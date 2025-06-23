@@ -1,5 +1,12 @@
 use clap::Parser;
+use scraper::{Html, Selector};
 use url::Url;
+
+#[derive(Debug, Clone)]
+struct IgcFile {
+    callsign: String,
+    download_url: String,
+}
 
 #[derive(Parser)]
 #[command(name = "soaringspot-igc-downloader")]
@@ -24,11 +31,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let html = response.text().await?;
         println!("Successfully downloaded HTML ({} bytes)", html.len());
 
-        // For now, just print a snippet to verify it worked
-        if html.len() > 200 {
-            println!("HTML preview: {}...", &html[..200]);
-        } else {
-            println!("HTML content: {}", html);
+        // Parse HTML and extract IGC file information
+        let igc_files = parse_igc_files(&html)?;
+        println!("Found {} IGC files:", igc_files.len());
+
+        for igc_file in &igc_files {
+            println!("  {} -> {}", igc_file.callsign, igc_file.download_url);
         }
     } else {
         eprintln!("Failed to download HTML: HTTP {}", response.status());
@@ -73,4 +81,67 @@ fn normalize_url(url_str: &str) -> Result<String, Box<dyn std::error::Error>> {
     url.set_path(&new_path);
 
     Ok(url.to_string())
+}
+
+fn parse_igc_files(html: &str) -> Result<Vec<IgcFile>, Box<dyn std::error::Error>> {
+    let document = Html::parse_document(html);
+    let mut igc_files = Vec::new();
+
+    // Select all elements with data-content attributes containing download links
+    let selector = Selector::parse(r#"[data-content*="download-contest-flight"]"#)?;
+
+    for element in document.select(&selector) {
+        // Extract the data-content attribute
+        if let Some(data_content) = element.value().attr("data-content") {
+            // Decode HTML entities and extract the download URL
+            if let Some(download_url) = extract_download_url(data_content) {
+                // Get the callsign from the text content of this cell
+                let callsign = element.text().collect::<String>().trim().to_string();
+
+                if !callsign.is_empty() {
+                    igc_files.push(IgcFile {
+                        callsign,
+                        download_url,
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(igc_files)
+}
+
+fn extract_download_url(data_content: &str) -> Option<String> {
+    // The data_content contains HTML-encoded content like:
+    // "&#x2F;en_gb&#x2F;download-contest-flight&#x2F;5039-10179576293&#x3F;dl&#x3D;1"
+    // We need to decode it and extract the URL
+
+    // Simple HTML entity decoder for the specific entities we need
+    let decoded = data_content
+        .replace("&#x2F;", "/")
+        .replace("&#x3D;", "=")
+        .replace("&#x3B;", ";")
+        .replace("&#x20;", " ")
+        .replace("&#x0A;", "\n");
+
+    // Look for the download URL with ?dl=1 parameter (second occurrence)
+    let mut last_url = None;
+    let mut search_start = 0;
+
+    while let Some(start_pos) =
+        decoded[search_start..].find(r#"href="/en_gb/download-contest-flight/"#)
+    {
+        let actual_pos = search_start + start_pos;
+        let href_start = actual_pos + 6; // Skip 'href="'
+
+        if let Some(end_pos) = decoded[href_start..].find('"') {
+            let url_part = &decoded[href_start..href_start + end_pos];
+            last_url = Some(format!("https://www.soaringspot.com{}", url_part));
+            search_start = href_start + end_pos + 1;
+        } else {
+            break;
+        }
+    }
+
+    last_url
 }
