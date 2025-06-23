@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
+use tokio::time::{Duration, sleep};
 use url::Url;
 use url_utils::{UrlInfo, extract_url_info};
 
@@ -139,7 +140,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // Download to temporary file first
-            match download_igc_file(&client, &igc_file.download_url, &file_path).await {
+            match download_igc_file(&client, &igc_file.download_url, &file_path, &progress_bar)
+                .await
+            {
                 Ok(_) => {
                     progress_bar.println(format!("✓ Downloaded: {}", filename));
                 }
@@ -205,34 +208,61 @@ async fn download_igc_file(
     client: &reqwest::Client,
     url: &str,
     final_path: &PathBuf,
+    progress_bar: &ProgressBar,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let response = client.get(url).send().await?;
-    if !response.status().is_success() {
-        return Err(format!("HTTP error {}: {}", response.status(), url).into());
+    // Retry parameters
+    const MAX_RETRIES: u32 = 5;
+    const INITIAL_DELAY_MS: u64 = 1000; // 1 second
+    const BACKOFF_FACTOR: u64 = 2; // Exponential backoff multiplier
+
+    let mut retry_count = 0;
+    let mut delay_ms = INITIAL_DELAY_MS;
+
+    loop {
+        let response = client.get(url).send().await?;
+        if !response.status().is_success() {
+            return Err(format!("HTTP error {}: {}", response.status(), url).into());
+        }
+
+        let content = response.bytes().await?;
+
+        // check for "Too Many Requests"
+        if std::str::from_utf8(&content)
+            .unwrap_or("")
+            .contains("<h1>Too Many Requests</h1>")
+        {
+            if retry_count >= MAX_RETRIES {
+                return Err(format!(
+                    "Exceeded maximum retries ({}) for Too Many Requests: {}",
+                    MAX_RETRIES, url
+                )
+                .into());
+            }
+
+            retry_count += 1;
+            progress_bar.println(format!(
+                "Received 'Too Many Requests' response in content. Retrying in {} ms (attempt {}/{})",
+                delay_ms, retry_count, MAX_RETRIES
+            ));
+
+            sleep(Duration::from_millis(delay_ms)).await;
+            delay_ms *= BACKOFF_FACTOR; // Exponential backoff
+            continue;
+        }
+
+        // Create a temporary file
+        let temp_file = NamedTempFile::new()?;
+        let temp_path = temp_file.path();
+
+        // Write content to temporary file
+        let mut file = fs::File::create(temp_path).await?;
+        file.write_all(&content).await?;
+        file.shutdown().await?;
+        drop(file);
+
+        // Atomically move temp file to final location
+        fs::rename(temp_path, final_path).await?;
+
+        return Ok(());
     }
-
-    let content = response.bytes().await?;
-
-    // check for "Too Many Requests"
-    if std::str::from_utf8(&content)
-        .unwrap_or("")
-        .contains("<h1>Too Many Requests</h1>")
-    {
-        return Err("Received 'Too Many Requests' response".into());
-    }
-
-    // Create a temporary file
-    let temp_file = NamedTempFile::new()?;
-    let temp_path = temp_file.path();
-
-    // Write content to temporary file
-    let mut file = fs::File::create(temp_path).await?;
-    file.write_all(&content).await?;
-    file.shutdown().await?;
-    drop(file);
-
-    // Atomically move temp file to final location
-    fs::rename(temp_path, final_path).await?;
-
-    Ok(())
 }
