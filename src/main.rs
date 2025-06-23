@@ -117,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .join(date_str);
 
         fs::create_dir_all(&target_dir).await?;
-        println!("Downloading to: {}", target_dir.display());
+        progress_bar.println(format!("Downloading to: {}", target_dir.display()));
 
         // Generate date prefix for filenames
         let date_prefix = date_to_igc_filename_prefix(daily_info.date);
