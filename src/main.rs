@@ -79,7 +79,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
         progress_bar.inc(1);
 
-        igc_files.push((daily_url, daily_igc_files));
+        if !daily_igc_files.is_empty() {
+            igc_files.push((daily_url, daily_igc_files));
+        }
     }
 
     progress_bar.finish_with_message("Download complete!");
