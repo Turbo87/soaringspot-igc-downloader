@@ -210,6 +210,21 @@ async fn download_igc_file(
     final_path: &Path,
     progress_bar: &ProgressBar,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let content = fetch_with_retry(client, url, progress_bar).await?;
+
+    let final_path = final_path.to_path_buf();
+    tokio::task::spawn_blocking(move || write_atomically(&final_path, &content)).await??;
+
+    Ok(())
+}
+
+/// Fetches `url`, retrying with exponential backoff while SoaringSpot
+/// responds with its "Too Many Requests" page.
+async fn fetch_with_retry(
+    client: &reqwest::Client,
+    url: &str,
+    progress_bar: &ProgressBar,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // Retry parameters
     const MAX_RETRIES: u32 = 5;
     const INITIAL_DELAY_MS: u64 = 1000; // 1 second
@@ -250,10 +265,7 @@ async fn download_igc_file(
             continue;
         }
 
-        let final_path = final_path.to_path_buf();
-        tokio::task::spawn_blocking(move || write_atomically(&final_path, &content)).await??;
-
-        return Ok(());
+        return Ok(content.into());
     }
 }
 
