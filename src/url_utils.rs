@@ -16,10 +16,9 @@ impl DailyUrlInfo {
 
     /// Generates a daily result URL from the DailyUrlInfo
     pub fn to_daily_url(&self) -> String {
-        let date_str = self.date.strftime("%Y-%m-%d").to_string();
         format!(
             "https://www.soaringspot.com/en_gb/{}/results/{}/{}-on-{}/daily",
-            self.competition, self.class, self.task_name, date_str
+            self.competition, self.class, self.task_name, self.date
         )
     }
 
