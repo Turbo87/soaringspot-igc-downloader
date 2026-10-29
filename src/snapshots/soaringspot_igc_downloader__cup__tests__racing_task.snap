@@ -1,0 +1,22 @@
+---
+source: src/cup.rs
+expression: cup
+---
+name,code,country,lat,lon,elev,style,rwdir,rwlen,rwwidth,freq,desc
+"002SPZELEC",,,4918.967N,01438.650E,477m,1,,,,,
+"095CUPRINA",,,4957.117N,01229.133E,864m,1,,,,,
+"126ERPETSHOF",,,4939.333N,01217.500E,150m,1,,,,,
+"385NYRSKO",,,4915.633N,01308.733E,700m,1,,,,,
+"594VIMPERK",,,4903.133N,01346.483E,500m,1,,,,,
+"084CERVENA",,,4914.817N,01453.167E,480m,1,,,,,
+"001SPTABOR",,,4923.650N,01442.167E,428m,1,,,,,
+-----Related Tasks-----
+"19.6. - Club - Task A","002SPZELEC","002SPZELEC","095CUPRINA","126ERPETSHOF","385NYRSKO","594VIMPERK","084CERVENA","001SPTABOR","001SPTABOR"
+Options,NoStart=11:54:00
+ObsZone=0,Style=2,R1=7500m,A1=180,Line=1
+ObsZone=1,Style=1,R1=500m,A1=180
+ObsZone=2,Style=1,R1=500m,A1=180
+ObsZone=3,Style=1,R1=500m,A1=180
+ObsZone=4,Style=1,R1=500m,A1=180
+ObsZone=5,Style=1,R1=500m,A1=180
+ObsZone=6,Style=3,R1=5000m,A1=180,Reduce=1

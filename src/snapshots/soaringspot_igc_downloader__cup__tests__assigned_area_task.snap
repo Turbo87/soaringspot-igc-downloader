@@ -1,0 +1,21 @@
+---
+source: src/cup.rs
+expression: cup
+---
+name,code,country,lat,lon,elev,style,rwdir,rwlen,rwwidth,freq,desc
+"161TELEKGERDAPT",,,4639.153N,02057.725E,88m,1,,,,,
+"081KARCAGVA",,,4718.233N,02055.950E,82m,1,,,,,
+"167SZEKUTAS",,,4630.250N,02032.550E,84m,1,,,,,
+"093KKHALASV",,,4625.983N,01929.700E,125m,1,,,,,
+"118MEZOHEGY",,,4618.633N,02049.117E,97m,1,,,,,
+"249 Finish South",,,4639.067N,02109.750E,82m,1,,,,,
+-----Related Tasks-----
+"","161TELEKGERDAPT","161TELEKGERDAPT","081KARCAGVA","167SZEKUTAS","093KKHALASV","118MEZOHEGY","161TELEKGERDAPT","249 Finish South","249 Finish South"
+Options,TaskTime=03:00:00
+ObsZone=0,Style=2,R1=5000m,A1=180,Line=1
+ObsZone=1,Style=1,R1=15000m,A1=180
+ObsZone=2,Style=1,R1=15000m,A1=180
+ObsZone=3,Style=1,R1=25000m,A1=180
+ObsZone=4,Style=0,R1=15000m,A1=120,A12=165
+ObsZone=5,Style=1,R1=500m,A1=180
+ObsZone=6,Style=3,R1=5000m,A1=180,Reduce=1

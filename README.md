@@ -57,11 +57,12 @@ The downloaded files are organized in the following directory structure:
         └── <date>/
             ├── <date_prefix>_<callsign>.igc
             ├── results.html
+            ├── task.cup
             ├── task.html
             └── task.json
 ```
 
-`results.html` and `task.html` are the unmodified SoaringSpot pages of that day. `task.json` is the task data embedded in the task page. These files are replaced on every run, unless the new data can't be read, in which case the existing files are kept and the tool exits with an error after downloading everything else. See [docs/soaringspot-data.md](docs/soaringspot-data.md) for details on the data.
+`results.html` and `task.html` are the unmodified SoaringSpot pages of that day. `task.json` is the task data embedded in the task page, and `task.cup` is the same task in the [SeeYou CUP format](https://github.com/naviter/seeyou_file_formats/blob/main/CUP_file_format.md). These files are replaced on every run, unless the new data can't be read, in which case the existing files are kept and the tool exits with an error after downloading everything else. See [docs/soaringspot-data.md](docs/soaringspot-data.md) for details on the data.
 
 For example:
 
@@ -74,6 +75,7 @@ For example:
     │   │   ├── 56C_XYZ.igc
     │   │   ├── ...
     │   │   ├── results.html
+    │   │   ├── task.cup
     │   │   ├── task.html
     │   │   └── task.json
     │   └── 2025-06-13/

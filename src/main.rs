@@ -1,3 +1,4 @@
+mod cup;
 mod date_utils;
 mod parser;
 mod url_utils;
@@ -176,9 +177,9 @@ fn report_failures(failures: &[String]) -> ExitCode {
     ExitCode::FAILURE
 }
 
-/// Fetches the task page and saves it together with the results page and
-/// the extracted task data. Nothing is written unless all of them are
-/// available, so existing files are kept on failure.
+/// Fetches the task page and saves it together with the results page, the
+/// extracted task data, and the task as CUP file. Nothing is written unless
+/// all of them are available, so existing files are kept on failure.
 async fn save_task_and_results(
     client: &reqwest::Client,
     daily_info: &DailyUrlInfo,
@@ -189,11 +190,17 @@ async fn save_task_and_results(
     let task_page = fetch_with_retry(client, &daily_info.to_task_url(), progress_bar).await?;
     let task_html = String::from_utf8(task_page)?;
     let task_json = extract_task_json(&task_html)?.to_owned();
+    let (task_cup, warnings) = cup::task_cup(&serde_json::from_str(&task_json)?)?;
+    let day = format!("{} class on {}", daily_info.class, daily_info.date);
+    for warning in warnings {
+        progress_bar.println(format!("⚠ {day}: {warning}"));
+    }
 
     let files = vec![
         ("results.html", results_html.as_bytes().to_vec()),
         ("task.html", task_html.into_bytes()),
         ("task.json", task_json.into_bytes()),
+        ("task.cup", task_cup.into_bytes()),
     ];
 
     let target_dir = target_dir.to_owned();
