@@ -55,8 +55,13 @@ The downloaded files are organized in the following directory structure:
 └── <competition_name>/
     └── <class_name>/
         └── <date>/
-            └── <date_prefix>_<callsign>.igc
+            ├── <date_prefix>_<callsign>.igc
+            ├── results.html
+            ├── task.html
+            └── task.json
 ```
+
+`results.html` and `task.html` are the unmodified SoaringSpot pages of that day. `task.json` is the task data embedded in the task page. These files are replaced on every run, unless the new data can't be read, in which case the existing files are kept and the tool exits with an error after downloading everything else. See [docs/soaringspot-data.md](docs/soaringspot-data.md) for details on the data.
 
 For example:
 
@@ -67,7 +72,10 @@ For example:
     │   ├── 2025-06-12/
     │   │   ├── 56C_ABC.igc
     │   │   ├── 56C_XYZ.igc
-    │   │   └── ...
+    │   │   ├── ...
+    │   │   ├── results.html
+    │   │   ├── task.html
+    │   │   └── task.json
     │   └── 2025-06-13/
     │       └── ...
     ├── standard/

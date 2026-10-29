@@ -22,6 +22,14 @@ impl DailyUrlInfo {
             self.competition, self.class, self.task_name, date_str
         )
     }
+
+    /// Generates the URL of the task page from the DailyUrlInfo
+    pub fn to_task_url(&self) -> String {
+        format!(
+            "https://www.soaringspot.com/en_gb/{}/tasks/{}/{}-on-{}",
+            self.competition, self.class, self.task_name, self.date
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -263,6 +271,19 @@ mod tests {
 
         let url = daily_info.to_daily_url();
         insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/test-competition/results/standard/task-5-on-2024-12-01/daily");
+    }
+
+    #[test]
+    fn test_daily_url_info_to_task_url() {
+        let daily_info = DailyUrlInfo {
+            competition: "39th-fai-world-gliding-championships-tabor-2025".to_string(),
+            class: "club".to_string(),
+            date: Date::constant(2025, 6, 19),
+            task_name: "task-10".to_string(),
+        };
+
+        let url = daily_info.to_task_url();
+        insta::assert_snapshot!(url, @"https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/tasks/club/task-10-on-2025-06-19");
     }
 
     #[test]

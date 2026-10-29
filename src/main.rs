@@ -6,9 +6,10 @@ use crate::url_utils::DailyUrlInfo;
 use clap::Parser;
 use date_utils::date_to_igc_filename_prefix;
 use indicatif::{ProgressBar, ProgressStyle};
-use parser::parse_igc_files;
+use parser::{extract_task_json, parse_igc_files};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::time::{Duration, sleep};
@@ -39,8 +40,9 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let args = Args::parse();
+    let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
 
     let client = reqwest::Client::new();
     let daily_urls = daily_urls_for_url(&client, &args.url, args.include_practice).await?;
@@ -54,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let mut igc_files = vec![];
+    let mut failures = vec![];
     for daily_url in daily_urls {
         let url = daily_url.to_daily_url();
         progress_bar.set_message(format!(
@@ -61,19 +64,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             daily_url.class, daily_url.date
         ));
 
-        let response = client.get(url).send().await?;
-        if !response.status().is_success() {
-            progress_bar.println(format!(
-                "Failed to download HTML: HTTP {}",
-                response.status()
-            ));
-            return Err(format!("HTTP error: {}", response.status()).into());
-        }
-
-        let html = response.text().await?;
+        let html = String::from_utf8(fetch_with_retry(&client, &url, &progress_bar).await?)?;
 
         // Parse HTML and extract IGC file information
         let daily_igc_files = parse_igc_files(&html)?;
+
+        let target_dir = day_directory(&output_dir, &daily_url);
+        if let Err(error) =
+            save_task_and_results(&client, &daily_url, &html, &target_dir, &progress_bar).await
+        {
+            let failure = format!("{} class on {}: {}", daily_url.class, daily_url.date, error);
+            progress_bar.println(format!("✗ Failed to save task and results for {}", failure));
+            failures.push(failure);
+        }
+
         progress_bar.println(format!(
             "✓ Processed: {} class on {}",
             daily_url.class, daily_url.date
@@ -89,11 +93,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if igc_files.is_empty() {
         println!("No IGC files found to download");
-        return Ok(());
+        return Ok(report_failures(&failures));
     }
-
-    // Determine output directory and create directory structure
-    let output_dir = args.output.unwrap_or_else(|| PathBuf::from("."));
 
     let total_files = igc_files
         .iter()
@@ -112,13 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     for (daily_info, igc_files) in igc_files {
-        // Create directory structure: {output}/{competition}/{class}/{date}/
-        let date_str = daily_info.date.strftime("%Y-%m-%d").to_string();
-        let target_dir = output_dir
-            .join(&daily_info.competition)
-            .join(&daily_info.class)
-            .join(date_str);
-
+        let target_dir = day_directory(&output_dir, &daily_info);
         fs::create_dir_all(&target_dir).await?;
         progress_bar.println(format!("Downloading to: {}", target_dir.display()));
 
@@ -157,6 +152,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     progress_bar.finish_with_message("Download complete!");
 
+    Ok(report_failures(&failures))
+}
+
+/// Returns `{output}/{competition}/{class}/{date}/`.
+fn day_directory(output_dir: &Path, daily_info: &DailyUrlInfo) -> PathBuf {
+    output_dir
+        .join(&daily_info.competition)
+        .join(&daily_info.class)
+        .join(daily_info.date.to_string())
+}
+
+fn report_failures(failures: &[String]) -> ExitCode {
+    if failures.is_empty() {
+        return ExitCode::SUCCESS;
+    }
+
+    let days = failures.len();
+    eprintln!("Failed to save task and results for {days} day(s):");
+    for failure in failures {
+        eprintln!("  {}", failure);
+    }
+    ExitCode::FAILURE
+}
+
+/// Fetches the task page and saves it together with the results page and
+/// the extracted task data. Nothing is written unless all of them are
+/// available, so existing files are kept on failure.
+async fn save_task_and_results(
+    client: &reqwest::Client,
+    daily_info: &DailyUrlInfo,
+    results_html: &str,
+    target_dir: &Path,
+    progress_bar: &ProgressBar,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let task_page = fetch_with_retry(client, &daily_info.to_task_url(), progress_bar).await?;
+    let task_html = String::from_utf8(task_page)?;
+    let task_json = extract_task_json(&task_html)?.to_owned();
+
+    let files = vec![
+        ("results.html", results_html.as_bytes().to_vec()),
+        ("task.html", task_html.into_bytes()),
+        ("task.json", task_json.into_bytes()),
+    ];
+
+    let target_dir = target_dir.to_owned();
+    tokio::task::spawn_blocking(move || write_day_files(&target_dir, &files)).await??;
+
+    Ok(())
+}
+
+fn write_day_files(dir: &Path, files: &[(&str, Vec<u8>)]) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    for (name, content) in files {
+        write_atomically(&dir.join(name), content)?;
+    }
     Ok(())
 }
 
@@ -294,5 +344,21 @@ mod tests {
         assert_eq!(std::fs::read(&path).unwrap(), b"second");
         let entries = std::fs::read_dir(dir.path()).unwrap().count();
         assert_eq!(entries, 1);
+    }
+
+    #[test]
+    fn write_day_files_creates_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let target_dir = dir.path().join("competition/club/2025-06-19");
+        let files = vec![
+            ("task.json", b"{}".to_vec()),
+            ("results.html", b"<html>".to_vec()),
+        ];
+
+        write_day_files(&target_dir, &files).unwrap();
+
+        for (name, content) in &files {
+            assert_eq!(&std::fs::read(target_dir.join(name)).unwrap(), content);
+        }
     }
 }

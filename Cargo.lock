@@ -1659,6 +1659,7 @@ dependencies = [
  "jiff",
  "reqwest",
  "scraper",
+ "serde_json",
  "tempfile",
  "tokio",
  "url",
