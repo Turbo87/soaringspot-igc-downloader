@@ -1,6 +1,7 @@
 mod cup;
 mod date_utils;
 mod parser;
+mod results_csv;
 mod url_utils;
 
 use crate::url_utils::DailyUrlInfo;
@@ -8,6 +9,7 @@ use clap::Parser;
 use date_utils::date_to_igc_filename_prefix;
 use indicatif::{ProgressBar, ProgressStyle};
 use parser::{extract_task_json, parse_igc_files};
+use results_csv::results_csv;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -178,8 +180,9 @@ fn report_failures(failures: &[String]) -> ExitCode {
 }
 
 /// Fetches the task page and saves it together with the results page, the
-/// extracted task data, and the task as CUP file. Nothing is written unless
-/// all of them are available, so existing files are kept on failure.
+/// results as CSV file, the extracted task data, and the task as CUP file.
+/// Nothing is written unless all of them are available, so existing files
+/// are kept on failure.
 async fn save_task_and_results(
     client: &reqwest::Client,
     daily_info: &DailyUrlInfo,
@@ -196,12 +199,15 @@ async fn save_task_and_results(
         progress_bar.println(format!("⚠ {day}: {warning}"));
     }
 
-    let files = vec![
+    let mut files = vec![
         ("results.html", results_html.as_bytes().to_vec()),
         ("task.html", task_html.into_bytes()),
         ("task.json", task_json.into_bytes()),
         ("task.cup", task_cup.into_bytes()),
     ];
+    if let Some(results_csv) = results_csv(results_html)? {
+        files.push(("results.csv", results_csv.into_bytes()));
+    }
 
     let target_dir = target_dir.to_owned();
     tokio::task::spawn_blocking(move || write_day_files(&target_dir, &files)).await??;

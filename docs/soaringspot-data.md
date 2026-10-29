@@ -52,7 +52,7 @@ Alternative start points appear as additional `task_points` entries with `multip
 
 ## Daily results page
 
-The daily results page (`/results/{class}/task-{n}-on-{date}/daily`) contains one table row per competitor. Optional columns differ between competitions: `Club` and `Handicap` are not always present.
+The daily results page (`/results/{class}/task-{n}-on-{date}/daily`) contains one table row per competitor. Optional columns differ between competitions: `Club` and `Handicap` are not always present. The Contestant cell has one flag per country, so a two-seater crew may have two flags and some competitions show none.
 
 A day without scores shows "No Results yet for this task." instead of a table.
 
@@ -69,6 +69,8 @@ Most numeric cells carry a `data-value` attribute that is more precise than the 
 | Points | sort key, see below |
 
 The date part of the Start and Finish `data-value` is wrong. A start on the Tábor Club class task of 2025-06-19 has the `data-value` `20250612122359`. Only the time of day is usable.
+
+Cells that display nothing still have a `data-value`, and it isn't meaningful. For a competitor without a finish, the Finish `data-value` holds an unrelated time of day.
 
 ### Times
 
