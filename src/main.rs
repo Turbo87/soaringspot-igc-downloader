@@ -182,7 +182,8 @@ fn report_failures(failures: &[String]) -> ExitCode {
 /// Fetches the task page and saves it together with the results page, the
 /// results as CSV file, the extracted task data, and the task as CUP file.
 /// Nothing is written unless all of them are available, so existing files
-/// are kept on failure.
+/// are kept on failure. Existing results are also kept while SoaringSpot has
+/// no results for the day.
 async fn save_task_and_results(
     client: &reqwest::Client,
     daily_info: &DailyUrlInfo,
@@ -193,21 +194,23 @@ async fn save_task_and_results(
     let task_page = fetch_with_retry(client, &daily_info.to_task_url(), progress_bar).await?;
     let task_html = String::from_utf8(task_page)?;
     let task_json = extract_task_json(&task_html)?.to_owned();
-    let (task_cup, warnings) = cup::task_cup(&serde_json::from_str(&task_json)?)?;
+    let (task_cup, mut warnings) = cup::task_cup(&serde_json::from_str(&task_json)?)?;
+
+    let has_existing_results = fs::try_exists(target_dir.join("results.csv")).await?;
+    let mut files = results_files(results_html, has_existing_results)?;
+    if files.is_empty() {
+        warnings.push("no results on SoaringSpot, keeping existing results".to_string());
+    }
+
     let day = format!("{} class on {}", daily_info.class, daily_info.date);
     for warning in warnings {
         progress_bar.println(format!("⚠ {day}: {warning}"));
     }
-
-    let mut files = vec![
-        ("results.html", results_html.as_bytes().to_vec()),
-        ("task.html", task_html.into_bytes()),
-        ("task.json", task_json.into_bytes()),
-        ("task.cup", task_cup.into_bytes()),
-    ];
-    if let Some(results_csv) = results_csv(results_html)? {
-        files.push(("results.csv", results_csv.into_bytes()));
-    }
+    files.extend([
+        ("task.html", task_html),
+        ("task.json", task_json),
+        ("task.cup", task_cup),
+    ]);
 
     let target_dir = target_dir.to_owned();
     tokio::task::spawn_blocking(move || write_day_files(&target_dir, &files)).await??;
@@ -215,10 +218,24 @@ async fn save_task_and_results(
     Ok(())
 }
 
-fn write_day_files(dir: &Path, files: &[(&str, Vec<u8>)]) -> std::io::Result<()> {
+/// Returns the results files to save. Without results on SoaringSpot, no
+/// files are returned if results were saved before, so that they are kept.
+fn results_files(
+    results_html: &str,
+    has_existing_results: bool,
+) -> Result<Vec<(&'static str, String)>, Box<dyn std::error::Error>> {
+    let results_page = ("results.html", results_html.to_string());
+    Ok(match results_csv(results_html)? {
+        Some(csv) => vec![results_page, ("results.csv", csv)],
+        None if has_existing_results => vec![],
+        None => vec![results_page],
+    })
+}
+
+fn write_day_files(dir: &Path, files: &[(&str, String)]) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
     for (name, content) in files {
-        write_atomically(&dir.join(name), content)?;
+        write_atomically(&dir.join(name), content.as_bytes())?;
     }
     Ok(())
 }
@@ -359,19 +376,54 @@ mod tests {
         assert_eq!(entries, 1);
     }
 
+    fn file_names(files: Vec<(&str, String)>) -> Vec<&str> {
+        files.into_iter().map(|(name, _)| name).collect()
+    }
+
+    #[test]
+    fn results_files_with_results() {
+        let html = include_str!("../tests/fixtures/day.html");
+        let files = results_files(html, true).unwrap();
+        insta::assert_debug_snapshot!(file_names(files), @r#"
+        [
+            "results.html",
+            "results.csv",
+        ]
+        "#);
+    }
+
+    #[test]
+    fn results_files_without_results() {
+        let html = "No Results yet for this task.";
+        let files = results_files(html, false).unwrap();
+        insta::assert_debug_snapshot!(file_names(files), @r#"
+        [
+            "results.html",
+        ]
+        "#);
+    }
+
+    #[test]
+    fn results_files_without_results_keeps_existing_results() {
+        let html = "No Results yet for this task.";
+        let files = results_files(html, true).unwrap();
+        insta::assert_debug_snapshot!(file_names(files), @"[]");
+    }
+
     #[test]
     fn write_day_files_creates_directory() {
         let dir = tempfile::tempdir().unwrap();
         let target_dir = dir.path().join("competition/club/2025-06-19");
         let files = vec![
-            ("task.json", b"{}".to_vec()),
-            ("results.html", b"<html>".to_vec()),
+            ("task.json", "{}".to_string()),
+            ("results.html", "<html>".to_string()),
         ];
 
         write_day_files(&target_dir, &files).unwrap();
 
         for (name, content) in &files {
-            assert_eq!(&std::fs::read(target_dir.join(name)).unwrap(), content);
+            let saved = std::fs::read_to_string(target_dir.join(name)).unwrap();
+            assert_eq!(&saved, content);
         }
     }
 }
