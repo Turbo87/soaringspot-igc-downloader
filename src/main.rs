@@ -33,7 +33,7 @@ struct Args {
     /// - https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-4-on-2025-06-12/daily
     url: Url,
 
-    /// Output directory for IGC files (defaults to current directory)
+    /// Output directory (defaults to current directory)
     #[arg(short, long)]
     output: Option<PathBuf>,
 
