@@ -102,7 +102,7 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
 
     if igc_files.is_empty() {
         println!("No IGC files found to download");
-        return Ok(report_failures(&failures));
+        return Ok(report_failures(&failures, &[]));
     }
 
     let total_files = igc_files
@@ -122,6 +122,7 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     );
 
     let extension = if args.gzip { "igc.gz" } else { "igc" };
+    let mut igc_failures = vec![];
     for (daily_info, igc_files) in igc_files {
         let target_dir = day_directory(&output_dir, &daily_info);
         fs::create_dir_all(&target_dir).await?;
@@ -152,6 +153,8 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
                 }
                 Err(e) => {
                     progress_bar.println(format!("✗ Failed to download {}: {}", filename, e));
+                    let day = format!("{} class on {}", daily_info.class, daily_info.date);
+                    igc_failures.push(format!("{day}, {filename}: {e}"));
                 }
             }
 
@@ -161,7 +164,7 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
 
     progress_bar.finish_with_message("Download complete!");
 
-    Ok(report_failures(&failures))
+    Ok(report_failures(&failures, &igc_failures))
 }
 
 /// Returns `{output}/{competition}/{class}/{date}/`.
@@ -172,17 +175,31 @@ fn day_directory(output_dir: &Path, daily_info: &DailyUrlInfo) -> PathBuf {
         .join(daily_info.date.to_string())
 }
 
-fn report_failures(failures: &[String]) -> ExitCode {
-    if failures.is_empty() {
-        return ExitCode::SUCCESS;
+fn report_failures(failed_days: &[String], failed_igc_files: &[String]) -> ExitCode {
+    let report = failure_report(failed_days, failed_igc_files);
+    eprint!("{report}");
+    match report.is_empty() {
+        true => ExitCode::SUCCESS,
+        false => ExitCode::FAILURE,
     }
+}
 
-    let days = failures.len();
-    eprintln!("Failed to save task and results for {days} day(s):");
-    for failure in failures {
-        eprintln!("  {}", failure);
+/// Lists the failures of a run, or returns an empty string without failures.
+fn failure_report(failed_days: &[String], failed_igc_files: &[String]) -> String {
+    let groups = [
+        ("save task and results for", "day(s)", failed_days),
+        ("download", "IGC file(s)", failed_igc_files),
+    ];
+    let mut report = String::new();
+    for (action, unit, failures) in groups {
+        if !failures.is_empty() {
+            report += &format!("Failed to {action} {} {unit}:\n", failures.len());
+            for failure in failures {
+                report += &format!("  {failure}\n");
+            }
+        }
     }
-    ExitCode::FAILURE
+    report
 }
 
 /// Fetches the task page and saves it together with the results page, the
@@ -402,6 +419,29 @@ mod tests {
         let mut decoder = flate2::read::GzDecoder::new(&compressed[..]);
         std::io::Read::read_to_end(&mut decoder, &mut decompressed).unwrap();
         assert_eq!(decompressed, content);
+    }
+
+    #[test]
+    fn failure_report_lists_failed_days_and_igc_files() {
+        let failed_days = [
+            "club class on 2026-08-14: Task needs at least a start and a finish point".to_string(),
+        ];
+        let failed_igc_files = [
+            "club class on 2023-07-06, 3B_LO.igc: HTTP error 403 Forbidden".to_string(),
+            "club class on 2023-07-06, 3B_XY.igc: HTTP error 403 Forbidden".to_string(),
+        ];
+        insta::assert_snapshot!(failure_report(&failed_days, &failed_igc_files), @"
+        Failed to save task and results for 1 day(s):
+          club class on 2026-08-14: Task needs at least a start and a finish point
+        Failed to download 2 IGC file(s):
+          club class on 2023-07-06, 3B_LO.igc: HTTP error 403 Forbidden
+          club class on 2023-07-06, 3B_XY.igc: HTTP error 403 Forbidden
+        ");
+    }
+
+    #[test]
+    fn failure_report_without_failures() {
+        insta::assert_snapshot!(failure_report(&[], &[]), @"");
     }
 
     fn file_names(files: Vec<(&str, String)>) -> Vec<&str> {
