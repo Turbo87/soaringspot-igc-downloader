@@ -11,11 +11,24 @@ const WAYPOINT_HEADER: &str = "name,code,country,lat,lon,elev,style,rwdir,rwlen,
 #[derive(Debug, Deserialize)]
 pub struct Task {
     task_name: Option<String>,
+    result_status: ResultStatus,
     no_start: DateTime,
     /// Minimum task time of assigned area tasks in seconds, `0` otherwise.
     task_duration: u32,
     start_on_entry: bool,
     task_points: Vec<TaskPoint>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum ResultStatus {
+    Official,
+    Unofficial,
+    Preliminary,
+    Practice,
+    Cancelled,
+    #[serde(untagged)]
+    Other(#[expect(dead_code, reason = "only shown in debug output")] String),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -52,6 +65,12 @@ enum ZoneDirection {
     Next,
     Previous,
     Start,
+}
+
+impl Task {
+    pub fn is_cancelled(&self) -> bool {
+        matches!(self.result_status, ResultStatus::Cancelled)
+    }
 }
 
 impl Zone {
@@ -249,6 +268,13 @@ mod tests {
         let mut task = racing_task();
         task.task_points.truncate(1);
         insta::assert_snapshot!(task_cup(&task).unwrap_err(), @"Task needs at least a start and a finish point");
+    }
+
+    #[test]
+    fn test_result_status() {
+        let statuses = r#"["official", "cancelled", "postponed"]"#;
+        let statuses: Vec<ResultStatus> = serde_json::from_str(statuses).unwrap();
+        insta::assert_snapshot!(format!("{statuses:?}"), @r#"[Official, Cancelled, Other("postponed")]"#);
     }
 
     #[test]

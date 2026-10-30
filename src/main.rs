@@ -222,15 +222,23 @@ async fn save_task_and_results(
 type DayFile = (&'static str, String);
 
 /// Returns the task files to save, together with warnings about task data
-/// that `task.cup` can't represent.
+/// that `task.cup` can't represent. Cancelled tasks are saved without
+/// `task.cup` if they can't be converted, because SoaringSpot keeps them even
+/// when they are incomplete.
 fn task_files(html: String) -> Result<(Vec<DayFile>, Vec<String>), Box<dyn std::error::Error>> {
     let json = extract_task_json(&html)?.to_owned();
-    let (task_cup, warnings) = cup::task_cup(&serde_json::from_str(&json)?)?;
-    let files = vec![
-        ("task.html", html),
-        ("task.json", json),
-        ("task.cup", task_cup),
-    ];
+    let task: cup::Task = serde_json::from_str(&json)?;
+    let mut files = vec![("task.html", html), ("task.json", json)];
+    let warnings = match cup::task_cup(&task) {
+        Ok((task_cup, warnings)) => {
+            files.push(("task.cup", task_cup));
+            warnings
+        }
+        Err(error) if task.is_cancelled() => {
+            vec![format!("task.cup not written for cancelled task: {error}")]
+        }
+        Err(error) => return Err(error),
+    };
     Ok((files, warnings))
 }
 
@@ -424,6 +432,21 @@ mod tests {
         let (files, warnings) = task_files(html.to_string()).unwrap();
         insta::assert_snapshot!(file_names(files).join(" "), @"task.html task.json task.cup");
         assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn task_files_with_cancelled_task_without_finish() {
+        let html = include_str!("../tests/fixtures/task-cancelled.html");
+        let (files, warnings) = task_files(html.to_string()).unwrap();
+        insta::assert_snapshot!(file_names(files).join(" "), @"task.html task.json");
+        insta::assert_snapshot!(warnings.join("\n"), @"task.cup not written for cancelled task: Task needs at least a start and a finish point");
+    }
+
+    #[test]
+    fn task_files_with_official_task_without_finish() {
+        let html = include_str!("../tests/fixtures/task-cancelled.html");
+        let html = html.replace(r#""cancelled""#, r#""official""#);
+        insta::assert_snapshot!(task_files(html).unwrap_err(), @"Task needs at least a start and a finish point");
     }
 
     #[test]
