@@ -1,0 +1,138 @@
+---
+source: src/parser.rs
+expression: igc_files
+---
+[
+    IgcFile {
+        callsign: "SP",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396872.igc",
+    },
+    IgcFile {
+        callsign: "VZ",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396871.igc",
+    },
+    IgcFile {
+        callsign: "IR",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396855.igc",
+    },
+    IgcFile {
+        callsign: "BC",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396863.igc",
+    },
+    IgcFile {
+        callsign: "TA2",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396853.igc",
+    },
+    IgcFile {
+        callsign: "DM",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396851.igc",
+    },
+    IgcFile {
+        callsign: "MX",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396849.igc",
+    },
+    IgcFile {
+        callsign: "LD",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396848.igc",
+    },
+    IgcFile {
+        callsign: "5K",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396847.igc",
+    },
+    IgcFile {
+        callsign: "AX^2",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396866.igc",
+    },
+    IgcFile {
+        callsign: "NL",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396842.igc",
+    },
+    IgcFile {
+        callsign: "MM",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396869.igc",
+    },
+    IgcFile {
+        callsign: "MW",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396854.igc",
+    },
+    IgcFile {
+        callsign: "F3",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396868.igc",
+    },
+    IgcFile {
+        callsign: "RM",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396858.igc",
+    },
+    IgcFile {
+        callsign: "V",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396867.igc",
+    },
+    IgcFile {
+        callsign: "CX",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396852.igc",
+    },
+    IgcFile {
+        callsign: "FS",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396841.igc",
+    },
+    IgcFile {
+        callsign: "EJ",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396838.igc",
+    },
+    IgcFile {
+        callsign: "NW",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396844.igc",
+    },
+    IgcFile {
+        callsign: "MRL",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396859.igc",
+    },
+    IgcFile {
+        callsign: "JG",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396845.igc",
+    },
+    IgcFile {
+        callsign: "NF",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396843.igc",
+    },
+    IgcFile {
+        callsign: "FP",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396857.igc",
+    },
+    IgcFile {
+        callsign: "FIX",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396870.igc",
+    },
+    IgcFile {
+        callsign: "NW1",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396861.igc",
+    },
+    IgcFile {
+        callsign: "NW2",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396846.igc",
+    },
+    IgcFile {
+        callsign: "L2",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396864.igc",
+    },
+    IgcFile {
+        callsign: "YB",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396856.igc",
+    },
+    IgcFile {
+        callsign: "VF",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396862.igc",
+    },
+    IgcFile {
+        callsign: "TN",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396839.igc",
+    },
+    IgcFile {
+        callsign: "ME",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396850.igc",
+    },
+    IgcFile {
+        callsign: "WIM",
+        download_url: "https://archive.soaringspot.com/contest/044/4462/flights/8675/9096396865.igc",
+    },
+]

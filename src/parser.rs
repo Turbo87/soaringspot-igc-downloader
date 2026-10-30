@@ -39,7 +39,7 @@ pub fn parse_igc_files(html: &str) -> Result<Vec<IgcFile>, Box<dyn std::error::E
 
 fn extract_download_url(data_content: &str) -> Option<String> {
     // The data_content contains HTML-encoded content
-    // We need to decode it and extract the download URL with ?dl=1
+    // We need to decode it and extract the IGC download URL
 
     // Decode HTML entities using the html-escape library
     let decoded = decode_html_entities(data_content);
@@ -47,16 +47,22 @@ fn extract_download_url(data_content: &str) -> Option<String> {
     // Parse the decoded HTML fragment using scraper
     let fragment = Html::parse_fragment(&decoded);
 
-    // Select all links that contain "download-contest-flight" and have ?dl=1
-    let link_selector = Selector::parse(r#"a[href*="download-contest-flight"][href*="dl=1"]"#)
-        .expect("Invalid CSS selector");
+    // Select download links with ?dl=1, or direct links to archived IGC files
+    // that older competitions use instead
+    let link_selector = Selector::parse(concat!(
+        r#"a[href*="download-contest-flight"][href*="dl=1"], "#,
+        r#"a[href^="https://archive.soaringspot.com/"][href$=".igc"]"#,
+    ))
+    .expect("Invalid CSS selector");
 
-    // Find the first matching link and extract its href
+    // Find the first matching link and resolve its href
+    let base_url = Url::parse("https://www.soaringspot.com/").expect("Invalid base URL");
     fragment
         .select(&link_selector)
         .next()
         .and_then(|element| element.value().attr("href"))
-        .map(|href| format!("https://www.soaringspot.com{}", href))
+        .and_then(|href| base_url.join(href).ok())
+        .map(String::from)
 }
 
 /// Extracts all daily result URLs from a competition results page.
@@ -91,6 +97,15 @@ mod tests {
         let html = include_str!("../tests/fixtures/day.html");
         let igc_files = parse_igc_files(html).expect("Failed to parse IGC files");
 
+        insta::assert_debug_snapshot!(igc_files);
+    }
+
+    #[test]
+    fn test_parse_igc_files_with_archive_links() {
+        let html = include_str!("../tests/fixtures/day-archive.html");
+        let igc_files = parse_igc_files(html).unwrap();
+
+        assert_eq!(igc_files.len(), 33);
         insta::assert_debug_snapshot!(igc_files);
     }
 
