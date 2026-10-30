@@ -12,6 +12,7 @@ struct ResultRow {
     contestant: String,
     countries: String,
     club: String,
+    team: String,
     glider: String,
     handicap: String,
     start_time_local: String,
@@ -59,6 +60,7 @@ pub fn results_csv(html: &str) -> Result<Option<String>, Box<dyn Error>> {
                     record.countries = countries(cell)?;
                 }
                 "Club" => record.club = text,
+                "Team" => record.team = text,
                 "Glider" => record.glider = text,
                 "Handicap" => record.handicap = text,
                 "Start" => record.start_time_local = clock_time(cell)?,
@@ -185,6 +187,18 @@ mod tests {
     }
 
     #[test]
+    fn test_results_csv_with_team() {
+        let html = include_str!("../tests/fixtures/day-team.html");
+        let csv = results_csv(html).unwrap().unwrap();
+        let lines: Vec<_> = csv.lines().take(3).collect();
+        insta::assert_snapshot!(lines.join("\n"), @"
+        rank,cn,contestant,countries,club,team,glider,handicap,start_time_local,finish_time_local,duration,speed_kmh,distance_km,points,points_sort_key,penalty_points,remarks
+        1,1F,Pilot 1,de,,BB,LS1-f,1.009,13:20:28,16:34:03,3:13:35,87.1924095153828,281.316625,1000,10000024.50143,,
+        2,SF,Pilot 2,de,,BY,LS3 WL,1.049,13:15:32,16:23:48,3:08:16,89.65473403930561,281.316625,979,9790025.1854094,,
+        ");
+    }
+
+    #[test]
     fn test_results_csv_with_two_flags() {
         let html = include_str!("../tests/fixtures/day.html").replacen(
             r#"<div class="flag flag-cz" title="cz"></div>"#,
@@ -192,7 +206,7 @@ mod tests {
             1,
         );
         let csv = results_csv(&html).unwrap().unwrap();
-        insta::assert_snapshot!(csv.lines().nth(2).unwrap(), @"2,A3,Jane Doe,cz sk,,ASW 20,1.071,12:24:49,16:42:34,4:17:45,100.8722557067868,433.33040625,991,9910028.4534014,,");
+        insta::assert_snapshot!(csv.lines().nth(2).unwrap(), @"2,A3,Jane Doe,cz sk,,,ASW 20,1.071,12:24:49,16:42:34,4:17:45,100.8722557067868,433.33040625,991,9910028.4534014,,");
     }
 
     #[test]
@@ -226,7 +240,7 @@ mod tests {
             .lines()
             .find(|line| line.contains("Drew Stone"))
             .unwrap();
-        insta::assert_snapshot!(row, @r#"9,WUD,Drew Stone,,Adelaide University Gliding Club,LS 3,1074,12:34:19,16:08:41,3:34:22,120.3138431037144,429.854625,-183,-1829966.1496334,1000,"1,000 penalty points""#);
+        insta::assert_snapshot!(row, @r#"9,WUD,Drew Stone,,Adelaide University Gliding Club,,LS 3,1074,12:34:19,16:08:41,3:34:22,120.3138431037144,429.854625,-183,-1829966.1496334,1000,"1,000 penalty points""#);
     }
 
     #[test]
