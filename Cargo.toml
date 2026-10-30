@@ -1,6 +1,6 @@
 [package]
-name = "soaringspot-igc-downloader"
-description = "Downloads IGC files from SoaringSpot competition results"
+name = "soaringspot-downloader"
+description = "Downloads IGC files, tasks, and results of SoaringSpot competitions"
 license = "MIT OR Apache-2.0"
 version = "0.0.0"
 edition = "2024"

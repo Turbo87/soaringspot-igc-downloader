@@ -1,10 +1,10 @@
-# SoaringSpot IGC Downloader
+# SoaringSpot Downloader
 
-A command-line tool for downloading IGC flight log files from [SoaringSpot](https://www.soaringspot.com/) gliding competition results.
+A command-line tool for downloading the IGC flight log files, tasks, and results of [SoaringSpot](https://www.soaringspot.com/) gliding competitions.
 
 ## Description
 
-SoaringSpot IGC Downloader is a Rust application that allows you to easily download IGC flight log files from gliding competitions hosted on SoaringSpot. It can download files for an entire competition, a specific glider class, or a specific day's task.
+SoaringSpot Downloader is a Rust application that allows you to easily download the IGC flight log files, tasks, and results of gliding competitions hosted on SoaringSpot. It can download the data of an entire competition, a specific glider class, or a specific day's task.
 
 The tool automatically organizes downloaded files into a directory structure based on competition name, glider class, and date, and names the files according to IGC naming conventions.
 
@@ -18,32 +18,32 @@ The tool automatically organizes downloaded files into a directory structure bas
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/soaringspot-igc-downloader.git
-cd soaringspot-igc-downloader
+git clone https://github.com/Turbo87/soaringspot-downloader.git
+cd soaringspot-downloader
 
 # Build the project
 cargo build --release
 
-# The binary will be available at target/release/soaringspot-igc-downloader[.exe]
+# The binary will be available at target/release/soaringspot-downloader[.exe]
 ```
 
 ## Usage
 
 ```bash
 # Basic usage
-soaringspot-igc-downloader <URL> [OPTIONS]
+soaringspot-downloader <URL> [OPTIONS]
 
-# Download all IGC files from a competition
-soaringspot-igc-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025
+# Download a whole competition
+soaringspot-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025
 
-# Download all IGC files for a specific class
-soaringspot-igc-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/standard
+# Download a specific class
+soaringspot-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/standard
 
-# Download IGC files for a specific day's task
-soaringspot-igc-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-4-on-2025-06-12/daily
+# Download a specific day's task
+soaringspot-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-championships-tabor-2025/results/club/task-4-on-2025-06-12/daily
 
 # Specify an output directory
-soaringspot-igc-downloader <URL> --output /path/to/output/directory
+soaringspot-downloader <URL> --output /path/to/output/directory
 ```
 
 ## File Organization
