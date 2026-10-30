@@ -2,19 +2,19 @@
 source: src/results_csv.rs
 expression: results_csv(html).unwrap().unwrap()
 ---
-rank,cn,contestant,countries,club,glider,handicap,start_time_local,finish_time_local,duration,speed_kmh,distance_km,points,points_sort_key,penalty_points,remarks
-1,PT,Alex Brown,,Adelaide Soaring Club,JS3 RES 18m,1155,12:51:07,16:25:53,3:34:46,142.41578942262962,509.76940625,1000,10000040.069711,,
-2,VW,Sam Green,,Adelaide Soaring Club,Quintus,1262,12:35:15,16:10:18,3:35:03,145.5498023715432,521.67475,899,8990040.9521754,,
-3,ZZ,Chris White,,Waikerie Gliding Club,JS1 TJ 18m,1172,12:38:18,16:11:45,3:33:27,133.85459416725362,476.18771875,885,8850037.6580194,,
-4,8X,Jordan Black,,Adelaide Soaring Club,LS 4,1040,12:50:59,16:32:12,3:41:13,118.49847152113439,436.89728125,882,8820033.3531394,,
-HC,ER,Coaching #2,,Adelaide Soaring Club,DG 505 Orion 20m,1070,12:34:48,16:07:23,3:32:35,109.2301264210104,387.00840625,732,7320030.7287102,,
-5,GMU,Taylor Grey,,Adelaide Soaring Club,Hornet,1003,12:45:40,16:26:42,3:41:02,92.3862181420584,340.3405625,606,6060026.0031789,,
-6,IIF,Morgan Blue,,Adelaide Soaring Club,ASH 31 Mi 21m,1207,12:36:38,16:06:23,3:29:45,97.7955714285732,342.2845,481,4810027.507721,,
-6,IUN,Casey Red,,Adelaide Soaring Club,Discus b,1055,12:34:20,17:09:33,4:35:13,68.187508326774,312.7723125,481,4810019.2537468,,
-DNF,IID,Robin Gold,,Adelaide Soaring Club,LS 4,1040,,,,,0,0,0,,
-DNF,WUFB,Jamie Silver,,Adelaide Soaring Club,LS 3,1087,,,,,0,-2,-20000,,
-9,WUD,Drew Stone,,Adelaide University Gliding Club,LS 3,1074,12:34:19,16:08:41,3:34:22,120.3138431037144,429.854625,-183,-1829966.1496334,1000,"Outside Competition Area (1,000 penalty points)"
-HC,ZDG,Coaching #1,,Adelaide Soaring Club,DG 1000S 20m,1085,12:43:35,16:10:11,3:26:36,111.6021696428556,390.60759375,-332,-3319968.6087897,1000,"Outside Competition Area (1,000 penalty points)"
-HC,WUFS,Avery Wood,,Adelaide Soaring Club,LS 3,1083,12:43:55,15:53:45,3:09:50,101.7782053571412,356.22371875,-476,-4759971.3720526,1000,"Outside Competition Area (1,000 penalty points)"
-10,GXB,Quinn Field,,Adelaide Soaring Club,Glasflugel 304,1064,12:36:58,16:12:04,3:35:06,98.69465655509039,353.82034375,-495,-4949972.2309973,1000,"Outside Competition Area (1,000 penalty points)"
-DNF,FC,Riley Brook,,Adelaide Soaring Club,LS8-18,1098,,,,,0,-1000,-10000000,1000,"Outside Competition Area (1,000 penalty points)"
+rank,cn,contestant,countries,club,team,glider,handicap,start_time_local,finish_time_local,duration,speed_kmh,distance_km,points,points_sort_key,penalty_points,remarks
+1,PT,Alex Brown,,Adelaide Soaring Club,,JS3 RES 18m,1155,12:51:07,16:25:53,3:34:46,142.41578942262962,509.76940625,1000,10000040.069711,,
+2,VW,Sam Green,,Adelaide Soaring Club,,Quintus,1262,12:35:15,16:10:18,3:35:03,145.5498023715432,521.67475,899,8990040.9521754,,
+3,ZZ,Chris White,,Waikerie Gliding Club,,JS1 TJ 18m,1172,12:38:18,16:11:45,3:33:27,133.85459416725362,476.18771875,885,8850037.6580194,,
+4,8X,Jordan Black,,Adelaide Soaring Club,,LS 4,1040,12:50:59,16:32:12,3:41:13,118.49847152113439,436.89728125,882,8820033.3531394,,
+HC,ER,Coaching #2,,Adelaide Soaring Club,,DG 505 Orion 20m,1070,12:34:48,16:07:23,3:32:35,109.2301264210104,387.00840625,732,7320030.7287102,,
+5,GMU,Taylor Grey,,Adelaide Soaring Club,,Hornet,1003,12:45:40,16:26:42,3:41:02,92.3862181420584,340.3405625,606,6060026.0031789,,
+6,IIF,Morgan Blue,,Adelaide Soaring Club,,ASH 31 Mi 21m,1207,12:36:38,16:06:23,3:29:45,97.7955714285732,342.2845,481,4810027.507721,,
+6,IUN,Casey Red,,Adelaide Soaring Club,,Discus b,1055,12:34:20,17:09:33,4:35:13,68.187508326774,312.7723125,481,4810019.2537468,,
+DNF,IID,Robin Gold,,Adelaide Soaring Club,,LS 4,1040,,,,,0,0,0,,
+DNF,WUFB,Jamie Silver,,Adelaide Soaring Club,,LS 3,1087,,,,,0,-2,-20000,,
+9,WUD,Drew Stone,,Adelaide University Gliding Club,,LS 3,1074,12:34:19,16:08:41,3:34:22,120.3138431037144,429.854625,-183,-1829966.1496334,1000,"Outside Competition Area (1,000 penalty points)"
+HC,ZDG,Coaching #1,,Adelaide Soaring Club,,DG 1000S 20m,1085,12:43:35,16:10:11,3:26:36,111.6021696428556,390.60759375,-332,-3319968.6087897,1000,"Outside Competition Area (1,000 penalty points)"
+HC,WUFS,Avery Wood,,Adelaide Soaring Club,,LS 3,1083,12:43:55,15:53:45,3:09:50,101.7782053571412,356.22371875,-476,-4759971.3720526,1000,"Outside Competition Area (1,000 penalty points)"
+10,GXB,Quinn Field,,Adelaide Soaring Club,,Glasflugel 304,1064,12:36:58,16:12:04,3:35:06,98.69465655509039,353.82034375,-495,-4949972.2309973,1000,"Outside Competition Area (1,000 penalty points)"
+DNF,FC,Riley Brook,,Adelaide Soaring Club,,LS8-18,1098,,,,,0,-1000,-10000000,1000,"Outside Competition Area (1,000 penalty points)"
