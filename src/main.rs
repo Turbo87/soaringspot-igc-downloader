@@ -7,10 +7,10 @@ use clap::Parser;
 use date_utils::date_to_igc_filename_prefix;
 use indicatif::{ProgressBar, ProgressStyle};
 use parser::parse_igc_files;
-use std::path::PathBuf;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
 use tokio::fs;
-use tokio::io::AsyncWriteExt;
 use tokio::time::{Duration, sleep};
 use url::Url;
 use url_utils::{UrlInfo, extract_url_info};
@@ -207,7 +207,7 @@ async fn get_daily_urls_for_competition(
 async fn download_igc_file(
     client: &reqwest::Client,
     url: &str,
-    final_path: &PathBuf,
+    final_path: &Path,
     progress_bar: &ProgressBar,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Retry parameters
@@ -250,19 +250,37 @@ async fn download_igc_file(
             continue;
         }
 
-        // Create a temporary file
-        let temp_file = NamedTempFile::new()?;
-        let temp_path = temp_file.path();
-
-        // Write content to temporary file
-        let mut file = fs::File::create(temp_path).await?;
-        file.write_all(&content).await?;
-        file.shutdown().await?;
-        drop(file);
-
-        // Atomically move temp file to final location
-        fs::rename(temp_path, final_path).await?;
+        let final_path = final_path.to_path_buf();
+        tokio::task::spawn_blocking(move || write_atomically(&final_path, &content)).await??;
 
         return Ok(());
+    }
+}
+
+/// Writes `content` to `path` via a temporary file in the same directory,
+/// so that the final rename never crosses a filesystem boundary.
+fn write_atomically(path: &Path, content: &[u8]) -> std::io::Result<()> {
+    let dir = path.parent().unwrap_or(Path::new("."));
+    let mut temp_file = NamedTempFile::new_in(dir)?;
+    temp_file.write_all(content)?;
+    temp_file.persist(path)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_atomically_replaces_file_without_leftovers() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("56J_AM.igc");
+
+        write_atomically(&path, b"first").unwrap();
+        write_atomically(&path, b"second").unwrap();
+
+        assert_eq!(std::fs::read(&path).unwrap(), b"second");
+        let entries = std::fs::read_dir(dir.path()).unwrap().count();
+        assert_eq!(entries, 1);
     }
 }
