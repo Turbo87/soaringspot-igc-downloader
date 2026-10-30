@@ -1,6 +1,7 @@
 use crate::url_utils::{DailyUrlInfo, UrlInfo, extract_url_info};
 use html_escape::decode_html_entities;
 use scraper::{Html, Selector};
+use serde_json::value::RawValue;
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -65,6 +66,20 @@ fn extract_download_url(data_content: &str) -> Option<String> {
         .map(String::from)
 }
 
+/// Extracts the `taskData` JSON object embedded in a task page.
+///
+/// Returns the exact source text of the object so that it can be saved
+/// without reformatting any numbers.
+pub fn extract_task_json(html: &str) -> Result<&str, Box<dyn std::error::Error>> {
+    let (_, task_data) = html
+        .split_once("taskNormalize(")
+        .ok_or("Task data not found on task page")?;
+
+    let mut values = serde_json::Deserializer::from_str(task_data).into_iter::<&RawValue>();
+    let task = values.next().ok_or("Task data not found on task page")??;
+    Ok(task.get())
+}
+
 /// Extracts all daily result URLs from a competition results page.
 ///
 /// Returns a list of [DailyUrlInfo] for each class and task.
@@ -107,6 +122,18 @@ mod tests {
 
         assert_eq!(igc_files.len(), 33);
         insta::assert_debug_snapshot!(igc_files);
+    }
+
+    #[test]
+    fn test_extract_task_json() {
+        let html = include_str!("../tests/fixtures/task.html");
+        insta::assert_snapshot!(extract_task_json(html).unwrap());
+    }
+
+    #[test]
+    fn test_extract_task_json_without_task() {
+        let html = include_str!("../tests/fixtures/day.html");
+        insta::assert_snapshot!(extract_task_json(html).unwrap_err(), @"Task data not found on task page");
     }
 
     #[test]

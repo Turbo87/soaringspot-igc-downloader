@@ -55,8 +55,17 @@ The downloaded files are organized in the following directory structure:
 └── <competition_name>/
     └── <class_name>/
         └── <date>/
-            └── <date_prefix>_<callsign>.igc
+            ├── <date_prefix>_<callsign>.igc
+            ├── results.csv
+            ├── results.html
+            ├── task.cup
+            ├── task.html
+            └── task.json
 ```
+
+`results.html` and `task.html` are the unmodified SoaringSpot pages of that day. `task.json` is the task data embedded in the task page, and `task.cup` is the same task in the [SeeYou CUP format](https://github.com/naviter/seeyou_file_formats/blob/main/CUP_file_format.md). These files are replaced on every run, unless the new data can't be read, in which case the existing files are kept and the tool exits with an error after downloading everything else. See [docs/soaringspot-data.md](docs/soaringspot-data.md) for details on the data.
+
+`results.csv` contains one row per contestant with the columns `rank`, `cn`, `contestant`, `countries`, `club`, `glider`, `handicap`, `start_time_local`, `finish_time_local`, `duration`, `speed_kmh`, `distance_km`, `points`, `points_sort_key`, `penalty_points`, and `remarks`. `countries` contains the space-separated country codes of the contestant, for example `za de` for an international two-seater crew. Times are in the local time of the competition, not of your computer. `points_sort_key` is the value that SoaringSpot sorts the points by. While SoaringSpot has no results for the day yet, `results.csv` isn't written, and previously saved `results.html` and `results.csv` files are kept.
 
 For example:
 
@@ -67,7 +76,12 @@ For example:
     │   ├── 2025-06-12/
     │   │   ├── 56C_ABC.igc
     │   │   ├── 56C_XYZ.igc
-    │   │   └── ...
+    │   │   ├── ...
+    │   │   ├── results.csv
+    │   │   ├── results.html
+    │   │   ├── task.cup
+    │   │   ├── task.html
+    │   │   └── task.json
     │   └── 2025-06-13/
     │       └── ...
     ├── standard/
