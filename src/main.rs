@@ -7,6 +7,8 @@ mod url_utils;
 use crate::url_utils::DailyUrlInfo;
 use clap::Parser;
 use date_utils::date_to_igc_filename_prefix;
+use flate2::Compression;
+use flate2::write::GzEncoder;
 use indicatif::{ProgressBar, ProgressStyle};
 use parser::{extract_task_json, parse_igc_files};
 use results_csv::results_csv;
@@ -40,6 +42,10 @@ struct Args {
     /// Include practice days in the downloads
     #[arg(long)]
     include_practice: bool,
+
+    /// Save the IGC files gzip-compressed as `.igc.gz`
+    #[arg(long)]
+    gzip: bool,
 }
 
 #[tokio::main]
@@ -115,6 +121,7 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
             .progress_chars("#>-")
     );
 
+    let extension = if args.gzip { "igc.gz" } else { "igc" };
     for (daily_info, igc_files) in igc_files {
         let target_dir = day_directory(&output_dir, &daily_info);
         fs::create_dir_all(&target_dir).await?;
@@ -125,7 +132,7 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
 
         // Download each IGC file
         for igc_file in igc_files {
-            let filename = format!("{}_{}.igc", date_prefix, igc_file.callsign);
+            let filename = format!("{}_{}.{extension}", date_prefix, igc_file.callsign);
             let file_path = target_dir.join(&filename);
 
             progress_bar.set_message(format!("Downloading {}", filename));
@@ -138,9 +145,8 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
             }
 
             // Download to temporary file first
-            match download_igc_file(&client, &igc_file.download_url, &file_path, &progress_bar)
-                .await
-            {
+            let url = &igc_file.download_url;
+            match download_igc_file(&client, url, &file_path, args.gzip, &progress_bar).await {
                 Ok(_) => {
                     progress_bar.println(format!("✓ Downloaded: {}", filename));
                 }
@@ -288,9 +294,13 @@ async fn download_igc_file(
     client: &reqwest::Client,
     url: &str,
     final_path: &Path,
+    compress: bool,
     progress_bar: &ProgressBar,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let content = fetch_with_retry(client, url, progress_bar).await?;
+    let mut content = fetch_with_retry(client, url, progress_bar).await?;
+    if compress {
+        content = gzip(&content)?;
+    }
 
     let final_path = final_path.to_path_buf();
     tokio::task::spawn_blocking(move || write_atomically(&final_path, &content)).await??;
@@ -349,6 +359,12 @@ async fn fetch_with_retry(
     }
 }
 
+fn gzip(content: &[u8]) -> std::io::Result<Vec<u8>> {
+    let mut encoder = GzEncoder::new(vec![], Compression::default());
+    encoder.write_all(content)?;
+    encoder.finish()
+}
+
 /// Writes `content` to `path` via a temporary file in the same directory,
 /// so that the final rename never crosses a filesystem boundary.
 fn write_atomically(path: &Path, content: &[u8]) -> std::io::Result<()> {
@@ -374,6 +390,18 @@ mod tests {
         assert_eq!(std::fs::read(&path).unwrap(), b"second");
         let entries = std::fs::read_dir(dir.path()).unwrap().count();
         assert_eq!(entries, 1);
+    }
+
+    #[test]
+    fn gzip_compresses_losslessly() {
+        let content = b"AXCSAAA\r\nB1101355206343N00006198WA0058700558\r\n".repeat(100);
+        let compressed = gzip(&content).unwrap();
+        assert!(compressed.len() < content.len());
+
+        let mut decompressed = vec![];
+        let mut decoder = flate2::read::GzDecoder::new(&compressed[..]);
+        std::io::Read::read_to_end(&mut decoder, &mut decompressed).unwrap();
+        assert_eq!(decompressed, content);
     }
 
     fn file_names(files: Vec<(&str, String)>) -> Vec<&str> {

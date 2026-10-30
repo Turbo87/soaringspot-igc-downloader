@@ -44,6 +44,9 @@ soaringspot-downloader https://www.soaringspot.com/en_gb/39th-fai-world-gliding-
 
 # Specify an output directory
 soaringspot-downloader <URL> --output /path/to/output/directory
+
+# Save the IGC files gzip-compressed as .igc.gz
+soaringspot-downloader <URL> --gzip
 ```
 
 ## File Organization
