@@ -215,9 +215,7 @@ async fn save_task_and_results(
     progress_bar: &ProgressBar,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let task_page = fetch_with_retry(client, &daily_info.to_task_url(), progress_bar).await?;
-    let task_html = String::from_utf8(task_page)?;
-    let task_json = extract_task_json(&task_html)?.to_owned();
-    let (task_cup, mut warnings) = cup::task_cup(&serde_json::from_str(&task_json)?)?;
+    let (task_files, mut warnings) = task_files(String::from_utf8(task_page)?)?;
 
     let has_existing_results = fs::try_exists(target_dir.join("results.csv")).await?;
     let mut files = results_files(results_html, has_existing_results)?;
@@ -229,11 +227,7 @@ async fn save_task_and_results(
     for warning in warnings {
         progress_bar.println(format!("⚠ {day}: {warning}"));
     }
-    files.extend([
-        ("task.html", task_html),
-        ("task.json", task_json),
-        ("task.cup", task_cup),
-    ]);
+    files.extend(task_files);
 
     let target_dir = target_dir.to_owned();
     tokio::task::spawn_blocking(move || write_day_files(&target_dir, &files)).await??;
@@ -241,12 +235,36 @@ async fn save_task_and_results(
     Ok(())
 }
 
+/// The name and content of a file in the directory of a day.
+type DayFile = (&'static str, String);
+
+/// Returns the task files to save, together with warnings about task data
+/// that `task.cup` can't represent. Cancelled tasks are saved without
+/// `task.cup` if they can't be converted, because SoaringSpot keeps them even
+/// when they are incomplete.
+fn task_files(html: String) -> Result<(Vec<DayFile>, Vec<String>), Box<dyn std::error::Error>> {
+    let json = extract_task_json(&html)?.to_owned();
+    let task: cup::Task = serde_json::from_str(&json)?;
+    let mut files = vec![("task.html", html), ("task.json", json)];
+    let warnings = match cup::task_cup(&task) {
+        Ok((task_cup, warnings)) => {
+            files.push(("task.cup", task_cup));
+            warnings
+        }
+        Err(error) if task.is_cancelled() => {
+            vec![format!("task.cup not written for cancelled task: {error}")]
+        }
+        Err(error) => return Err(error),
+    };
+    Ok((files, warnings))
+}
+
 /// Returns the results files to save. Without results on SoaringSpot, no
 /// files are returned if results were saved before, so that they are kept.
 fn results_files(
     results_html: &str,
     has_existing_results: bool,
-) -> Result<Vec<(&'static str, String)>, Box<dyn std::error::Error>> {
+) -> Result<Vec<DayFile>, Box<dyn std::error::Error>> {
     let results_page = ("results.html", results_html.to_string());
     Ok(match results_csv(results_html)? {
         Some(csv) => vec![results_page, ("results.csv", csv)],
@@ -446,6 +464,29 @@ mod tests {
 
     fn file_names(files: Vec<(&str, String)>) -> Vec<&str> {
         files.into_iter().map(|(name, _)| name).collect()
+    }
+
+    #[test]
+    fn task_files_with_task() {
+        let html = include_str!("../tests/fixtures/task.html");
+        let (files, warnings) = task_files(html.to_string()).unwrap();
+        insta::assert_snapshot!(file_names(files).join(" "), @"task.html task.json task.cup");
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn task_files_with_cancelled_task_without_finish() {
+        let html = include_str!("../tests/fixtures/task-cancelled.html");
+        let (files, warnings) = task_files(html.to_string()).unwrap();
+        insta::assert_snapshot!(file_names(files).join(" "), @"task.html task.json");
+        insta::assert_snapshot!(warnings.join("\n"), @"task.cup not written for cancelled task: Task needs at least a start and a finish point");
+    }
+
+    #[test]
+    fn task_files_with_official_task_without_finish() {
+        let html = include_str!("../tests/fixtures/task-cancelled.html");
+        let html = html.replace(r#""cancelled""#, r#""official""#);
+        insta::assert_snapshot!(task_files(html).unwrap_err(), @"Task needs at least a start and a finish point");
     }
 
     #[test]

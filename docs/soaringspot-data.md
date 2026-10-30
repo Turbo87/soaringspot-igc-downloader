@@ -19,6 +19,8 @@ The findings were checked against about 75 daily results pages and 16 task pages
 
 The task page (`/tasks/{class}/task-{n}-on-{date}`) embeds the complete task as a JSON argument of `Map.SoaringSpot.taskNormalize(...)`. The top-level keys are `task_date`, `task_number`, `task_name`, `task_type` (`polygon` or `assigned_area`), `task_value`, `task_distance`, `task_distance_min`, `task_distance_max`, `task_duration` (minimum task time in seconds, `0` for racing tasks), `no_start`, `start_on_entry`, `qnh`, `result_status`, and `task_points`. In a larger sample of 124 tasks, `task_name` was missing from 14 tasks and `qnh` from 46. All other keys were always present.
 
+`result_status` was `official`, `unofficial`, `preliminary`, `practice`, or `cancelled` in 1,049 downloaded days. 148 of the 149 cancelled days kept the planned task, but one consisted of just the start point.
+
 Each task point has `name`, `type` (`start`, `point`, `finish`), `latitude` and `longitude` in radians, `elevation`, `distance`, `course_in`, `course_out`, `point_index`, `multiple_start`, and the observation zone fields `oz_type`, `oz_radius1`, `oz_radius2`, `oz_angle1`, `oz_angle2`, `oz_angle12` (angles in radians), `oz_line`, `oz_move`, `oz_reduce`, and `oz_max_altitude`.
 
 The task notes on the same page are free text. They often contain rules that affect scoring, such as the minimum finish altitude, the pre-start altitude limit, and PEV start settings.
