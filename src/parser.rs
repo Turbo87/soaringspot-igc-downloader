@@ -71,16 +71,11 @@ pub fn parse_daily_results(html: &str) -> Result<Vec<DailyUrlInfo>, Box<dyn std:
     let selector = Selector::parse(r#"a[href*="/results/"][href*="/daily"]"#)?;
 
     for element in document.select(&selector) {
-        if let Some(href) = element.value().attr("href") {
-            // Construct full URL
-            let full_url = format!("https://www.soaringspot.com{}", href);
-
-            // Parse the URL to extract info
-            if let Ok(url) = Url::parse(&full_url) {
-                if let Ok(UrlInfo::Daily(daily_info)) = extract_url_info(&url) {
-                    daily_results.push(daily_info);
-                }
-            }
+        if let Some(href) = element.value().attr("href")
+            && let Ok(url) = Url::parse(&format!("https://www.soaringspot.com{href}"))
+            && let Ok(UrlInfo::Daily(daily_info)) = extract_url_info(&url)
+        {
+            daily_results.push(daily_info);
         }
     }
 
